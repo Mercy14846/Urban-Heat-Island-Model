@@ -1,88 +1,68 @@
+import pandas as pd
 import numpy as np
-import tensorflow as tf
-from osgeo import gdal
-from arcgis.raster import Raster
-import rasterio
-from rasterio.plot import show
-from rasterio.features import shapes
-import ee
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestRegressor
+from sklearn.metrics import mean_squared_error
+import geopandas as gpd
 
-# Authenticate and initialize the Earth Engine API
-ee.Authenticate()  # You'll be prompted to log in with your Google account
-ee.Initialize()
+# UHI.py
 
-# Define the region of interest (ROI) - here, a simple bounding box
-roi = ee.Geometry.Rectangle([12.45, 41.9, 12.55, 42.0])  # Example coordinates (Rome, Italy)
+import matplotlib.pyplot as plt
 
-# Get Landsat 8 surface reflectance data
-landsat = ee.ImageCollection('LANDSAT/LC08/C01/T1_SR') \
-           .filterDate('2023-06-01', '2023-06-30') \
-           .filterBounds(roi) \
-           .map(lambda image: image.clip(roi))
+# Data Collection
+def collect_data(file_path):
+    data = pd.read_csv(file_path)
+    return data
 
-# Select bands for NDVI (Near Infrared - Red) and LST (Thermal Infrared)
-ndvi = landsat.map(lambda image: image.normalizedDifference(['B5', 'B4']).rename('NDVI'))
-lst = landsat.map(lambda image: image.select('B10').multiply(0.1).rename('LST'))
+# Data Preprocessing
+def preprocess_data(data):
+    data = data.dropna()  # Drop missing values
+    return data
 
-# Reduce collections to single images (e.g., mean over the time period)
-ndvi_mean = ndvi.mean().clip(roi)
-lst_mean = lst.mean().clip(roi)
+# Feature Engineering
+def feature_engineering(data):
+    data['temp_diff'] = data['urban_temp'] - data['rural_temp']
+    return data
 
-# Export to Google Drive (or download directly if small area)
-export_ndvi = ee.batch.Export.image.toDrive(ndvi_mean, description='NDVI_Export', scale=30, region=roi.getInfo())
-export_lst = ee.batch.Export.image.toDrive(lst_mean, description='LST_Export', scale=30, region=roi.getInfo())
-
-# Start the export tasks
-export_ndvi.start()
-export_lst.start()
-
-# Load the LST GeoTIFF
-with rasterio.open('LST_data.tif') as src:
-    lst_data = src.read(1)
-    lst_profile = src.profile
-
-# Load the NDVI GeoTIFF
-with rasterio.open('NDVI_data.tif') as src:
-    ndvi_data = src.read(1)
-    ndvi_profile = src.profile
-
-# Display the LST data
-show(lst_data, title="Land Surface Temperature (LST)")
-
-# Display the NDVI data
-show(ndvi_data, title="Normalized Difference Vegetation Index (NDVI)")
-
-# # Load and preprocess data
-def preprocess_data(input_path):
-    ds = gdal.Open(input_path)
-    array = ds.ReadAsArray()
-    return np.expand_dims(array, axis=-1)
-
-# Define the CNN model
-def create_uhi_model():
-    model = tf.keras.Sequential([
-        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=(256, 256, 1)),
-        tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
-        tf.keras.layers.MaxPooling2D((2, 2)),
-        tf.keras.layers.Flatten(),
-        tf.keras.layers.Dense(64, activation='relu'),
-        tf.keras.layers.Dense(1, activation='sigmoid')
-    ])
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+# Model Development
+def develop_model(data):
+    X = data[['urban_temp', 'rural_temp', 'humidity', 'wind_speed']]
+    y = data['temp_diff']
+    
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+    
+    scaler = StandardScaler()
+    X_train = scaler.fit_transform(X_train)
+    X_test = scaler.transform(X_test)
+    
+    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model.fit(X_train, y_train)
+    
+    y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    print(f'Mean Squared Error: {mse}')
+    
     return model
 
-# Training
-model = create_uhi_model()
-train_data = preprocess_data('train.tif')
-train_labels = np.array([1, 0, 1, 0])  # Example labels
-model.fit(train_data, train_labels, epochs=10)
+# Integration with QGIS
+def integrate_with_qgis(data, model):
+    gdf = gpd.GeoDataFrame(data, geometry=gpd.points_from_xy(data.longitude, data.latitude))
+    gdf['predicted_temp_diff'] = model.predict(data[['urban_temp', 'rural_temp', 'humidity', 'wind_speed']])
+    
+    gdf.to_file('UHI_predictions.shp')
+    print("Data exported to UHI_predictions.shp for QGIS visualization")
 
-# Save output for ArcGIS
-output = model.predict(train_data)
-gdal_array.SaveArray(output, 'uhi_detection.tif', format="GTiff")
+# Testing and Refinement
+def test_and_refine(data, model):
+    # Placeholder for additional testing and refinement steps
+    pass
 
-# Load into ArcGIS
-uhi_raster = Raster('uhi_detection.tif')
-uhi_raster_layer = uhi_raster.layers[0]
-uhi_raster_layer.save('UHI_Visualization')
+if __name__ == "__main__":
+    file_path = 'path_to_your_data.csv'
+    data = collect_data(file_path)
+    data = preprocess_data(data)
+    data = feature_engineering(data)
+    model = develop_model(data)
+    integrate_with_qgis(data, model)
+    test_and_refine(data, model)
