@@ -46,3 +46,27 @@ for raster_chunk in load_large_raster('LST_large.tif'):
     print(raster_chunk.shape)  # Process in chunks to avoid memory overload
 
 
+import tensorflow as tf
+
+# Define the CNN model
+def create_uhi_model(input_shape=(256, 256, 1)):
+    model = tf.keras.Sequential([
+        tf.keras.layers.Conv2D(32, (3, 3), activation='relu', input_shape=input_shape),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+        tf.keras.layers.MaxPooling2D((2, 2)),
+        tf.keras.layers.Flatten(),
+        tf.keras.layers.Dense(64, activation='relu'),
+        tf.keras.layers.Dense(1, activation='sigmoid')
+    ])
+    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
+    return model
+
+# Training data can now be processed in chunks
+model = create_uhi_model(input_shape=(1024, 1024, 1))
+
+# Assume that `train_chunk` is a chunk of training data
+for train_chunk in load_large_raster('train_large.tif'):
+    train_chunk = np.expand_dims(train_chunk, axis=-1)  # Expand dims for model input
+    train_labels = np.array([1] * train_chunk.shape[0])  # Placeholder labels
+    model.fit(train_chunk, train_labels, epochs=2)
