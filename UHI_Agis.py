@@ -72,17 +72,17 @@ def create_uhi_model():
     model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
     return model
 
-# # Training
-# model = create_uhi_model()
-# train_data = preprocess_data('train.tif')
-# train_labels = np.array([1, 0, 1, 0])  # Example labels
-# model.fit(train_data, train_labels, epochs=10)
+# Training
+model = create_uhi_model()
+train_data = preprocess_data('train.tif')
+train_labels = np.array([1, 0, 1, 0])  # Example labels
+model.fit(train_data, train_labels, epochs=10)
 
-# # Save output for ArcGIS
-# output = model.predict(train_data)
-# gdal_array.SaveArray(output, 'uhi_detection.tif', format="GTiff")
+# Save output for ArcGIS
+output = model.predict(train_data)
+gdal_array.SaveArray(output, 'uhi_detection.tif', format="GTiff")
 
-# # Load into ArcGIS
-# uhi_raster = Raster('uhi_detection.tif')
-# uhi_raster_layer = uhi_raster.layers[0]
-# uhi_raster_layer.save('UHI_Visualization')
+# Load into ArcGIS
+uhi_raster = Raster('uhi_detection.tif')
+uhi_raster_layer = uhi_raster.layers[0]
+uhi_raster_layer.save('UHI_Visualization')
