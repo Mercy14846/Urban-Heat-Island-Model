@@ -70,3 +70,29 @@ for train_chunk in load_large_raster('train_large.tif'):
     train_chunk = np.expand_dims(train_chunk, axis=-1)  # Expand dims for model input
     train_labels = np.array([1] * train_chunk.shape[0])  # Placeholder labels
     model.fit(train_chunk, train_labels, epochs=2)
+
+
+import gdal
+from rasterio.transform import from_origin
+import numpy as np
+
+# Function to save model output to GeoTIFF format
+def save_model_output_as_geotiff(output, output_path, profile):
+    output = np.squeeze(output, axis=-1)  # Ensure the output shape is correct
+    with rasterio.open(output_path, 'w', **profile) as dst:
+        dst.write(output, 1)
+
+# Example profile (you can load it from an actual GeoTIFF file)
+profile = {
+    'driver': 'GTiff',
+    'dtype': 'float32',
+    'width': 1024,
+    'height': 1024,
+    'count': 1,
+    'crs': 'EPSG:4326',
+    'transform': from_origin(-74.10, 40.85, 0.0001, 0.0001)  # Example geo-transform
+}
+
+# Save output of UHI detection model
+uhi_output = model.predict(train_chunk)
+save_model_output_as_geotiff(uhi_output, 'uhi_output_large.tif', profile)
