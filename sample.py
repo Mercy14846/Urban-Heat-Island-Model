@@ -2,7 +2,7 @@ import ee
 
 # Authenticate and initialize Earth Engine
 ee.Authenticate()
-ee.Initialize()
+ee.Initialize(project='YOUR_PROJECT_ID')
 
 # Define a larger region of interest (ROI)
 roi = ee.Geometry.Polygon([
