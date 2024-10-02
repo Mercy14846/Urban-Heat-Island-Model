@@ -23,7 +23,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 - `scikit-learn`
 
 # Installation:
-1. Install Python (version >= 3.8 recommended).
+1. Install `Python` (version >= 3.8 recommended).
 
 2. Install the required packages by running the following command:
 bash
