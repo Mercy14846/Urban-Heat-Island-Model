@@ -39,16 +39,14 @@ GDAL is required for reading/writing geospatial data. Install `GDAL` using:
 conda install -c conda-forge gdal
 ```
 Or via apt for Linux:
-
-bash
-Copy code
+```
 sudo apt install gdal-bin
-TensorFlow Installation:
+```
+**TensorFlow Installation:**
 TensorFlow can be installed with pip:
-
-bash
-Copy code
+```
 pip install tensorflow
+```
 
 
 ## Data Download
