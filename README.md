@@ -13,7 +13,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 - Exports results as GeoTIFF files for use in GIS software.
 5. **Integration with QGIS**: The results can be visualized in QGIS to aid in urban planning and climate analysis.
 
-# Requirements
+## Requirements
 **Python Libraries:**
 - `numpy`
 - `rasterio`
@@ -22,7 +22,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 - `tensorflow`
 - `scikit-learn`
 
-# Installation:
+## Installation:
 1. Install `Python` (version >= 3.8 recommended).
 
 2. Install the required packages by running the following command:
