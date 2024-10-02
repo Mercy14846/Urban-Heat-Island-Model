@@ -68,13 +68,12 @@ download_landsat_image(landsat_url, save_path)
 ```
 2. **Loading and Preprocessing:** The script resamples the image to a common resolution and applies a mask to isolate urban areas.
 
-U-Net Model: The model is defined using TensorFlow and can be trained on the preprocessed satellite data to detect UHIs. Ensure that you have enough labeled data to train the model.
+3. **U-Net Model:** The model is defined using TensorFlow and can be trained on the preprocessed satellite data to detect UHIs. Ensure that you have enough labeled data to train the model.
 
-Exporting to GeoTIFF: Once the model has made predictions, the output is saved as a GeoTIFF, which can be opened in QGIS or any other GIS platform for visualization.
-
-python
-Copy code
-export_to_geotiff(masked_image, output_path, new_profile)
+4. **Exporting to GeoTIFF:** Once the model has made predictions, the output is saved as a GeoTIFF, which can be opened in QGIS or any other GIS platform for visualization.
+  ```
+  export_to_geotiff(masked_image, output_path, new_profile)
+  ```
 QGIS Integration:
 
 Open QGIS and load the output GeoTIFF file (uhi_prediction.tif).
