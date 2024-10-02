@@ -14,7 +14,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 5. Integration with QGIS: The results can be visualized in QGIS to aid in urban planning and climate analysis.
 
 # Requirements
-## Python Libraries:
+**Python Libraries:**
 - numpy
 - rasterio
 - gdal
@@ -27,9 +27,9 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 
 2. Install the required packages by running the following command:
 bash
-Copy code
+```Copy code
 pip install numpy rasterio gdal requests tensorflow scikit-learn
-
+```
 3. Install the Google Earth Engine API:
 
 bash
@@ -124,5 +124,7 @@ Future Enhancements
 Integrate additional satellite data sources like Sentinel-2.
 Refine the model for better UHI detection accuracy.
 Add more case studies in diverse urban environments.
+Written by:
+Akintola Mercy Ọ̀nàọpẹ́mipọ̀ is a Geospatial Developer with an advance special interest in geospatial community development.
 License
 This project is open-source and distributed under the MIT License.
