@@ -15,7 +15,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 
 # Requirements
 **Python Libraries:**
-- numpy
+- `numpy`
 - rasterio
 - gdal
 - requests
