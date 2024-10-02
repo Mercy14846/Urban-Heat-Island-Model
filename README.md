@@ -29,7 +29,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 ```
 pip install numpy rasterio gdal requests tensorflow scikit-learn
 ```
-3. Install the Google Earth Engine API:
+3. Install the `Google Earth Engine API`:
 ```
 pip install earthengine-api
 ```
