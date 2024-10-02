@@ -1,2 +1,2 @@
-# Urban-Heat-Island-Model
+# Urban Heat Island (UHI) Detection Model
 Implementing UHI, aim to create a versatile and accurate model for detecting and analyzing Urban Heat Islands (UHIs) across diverse global communities. The model will integrate satellite and urban data to enhance detection accuracy, providing critical insights for urban planners, environmentalists, and policymakers. Through visualization in QGIS, the project will support informed decision-making to mitigate UHI effects, improve urban climate resilience, and contribute to sustainable urban development.
