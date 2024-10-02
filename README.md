@@ -74,40 +74,37 @@ download_landsat_image(landsat_url, save_path)
   ```
   export_to_geotiff(masked_image, output_path, new_profile)
   ```
-QGIS Integration:
+5. **QGIS Integration:**
+- Open QGIS and load the output GeoTIFF file (`uhi_prediction.tif`).
+- Use QGIS tools to further analyze the UHI predictions, visualize results, or combine them with other geospatial layers.
 
-Open QGIS and load the output GeoTIFF file (uhi_prediction.tif).
-Use QGIS tools to further analyze the UHI predictions, visualize results, or combine them with other geospatial layers.
-Example Workflow
-Download Landsat Image:
 
-python
-Copy code
+## Example Workflow
+1. **Download Landsat Image:**
+```
 landsat_url = "https://example.com/path/to/landsat_image.tif"
 save_path = "landsat_image.tif"
 download_landsat_image(landsat_url, save_path)
-Preprocess Image:
-
-python
-Copy code
+```
+2. **Preprocess Image:**
+```
 image, profile = load_satellite_image(save_path)
 resampled_image, new_profile = resample_image(image, profile, 30)  # Example 30m resolution
-Calculate NDVI:
-
-python
-Copy code
+```
+3. **Calculate NDVI:**
+```
 ndvi = calculate_ndvi(nir_band, red_band)
-Build and Train U-Net Model:
-
-python
-Copy code
+```
+4. **Build and Train U-Net Model:**
+```
 model = build_unet_model((128, 128, 3))
 train_model(model, train_data, train_labels, val_data, val_labels)
-Export to GeoTIFF:
-
-python
-Copy code
+```
+5. **Export to GeoTIFF:**
+```
 export_to_geotiff(prediction, "uhi_prediction.tif", new_profile)
+```
+
 Troubleshooting
 GDAL Issues: If you face issues with GDAL (e.g., not installed or not found), ensure it's properly installed via Conda or your system's package manager.
 Module Not Found: Ensure all dependencies (GDAL, Rasterio, TensorFlow) are installed in the correct Python environment.
