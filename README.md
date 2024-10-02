@@ -34,8 +34,10 @@ pip install numpy rasterio gdal requests tensorflow scikit-learn
 pip install earthengine-api
 ```
 ## GDAL Installation:
-GDAL is required for reading/writing geospatial data. Install GDAL using:
-```conda install -c conda-forge gdal```
+GDAL is required for reading/writing geospatial data. Install `GDAL` using:
+```
+conda install -c conda-forge gdal
+```
 Or via apt for Linux:
 
 bash
