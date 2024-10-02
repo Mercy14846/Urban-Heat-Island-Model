@@ -3,8 +3,8 @@
 This project involves building a deep-detection model to identify Urban Heat Islands (UHIs) using satellite imagery (e.g., Landsat 8). The model is built using Python, TensorFlow, and several geospatial libraries such as Rasterio and GDAL. The results are exported as GeoTIFF files for further analysis in QGIS or other GIS platforms.
 
 ## Features
-1. Download Satellite Images: Downloads Landsat images using an API (e.g., USGS Earth Explorer or AWS Landsat).
-2. Preprocessing:
+1. **Download Satellite Images**: Downloads Landsat images using an API (e.g., USGS Earth Explorer or AWS Landsat).
+2. **Preprocessing:**
 - Loads and resamples satellite imagery to a common resolution.
 - Applies masks to isolate urban areas for UHI detection.
 - Normalizes bands for calculating NDVI and other environmental indicators.
@@ -27,15 +27,14 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 
 2. Install the required packages by running the following command:
 bash
-```Copy code
+``` Copy code
 pip install numpy rasterio gdal requests tensorflow scikit-learn
 ```
 3. Install the Google Earth Engine API:
-
-bash
-Copy code
+- bash
+```Copy code
 pip install earthengine-api
-
+```
 ## GDAL Installation:
 GDAL is required for reading/writing geospatial data. Install GDAL using:
 
