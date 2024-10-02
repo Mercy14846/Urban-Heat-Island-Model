@@ -58,17 +58,15 @@ You can download Landsat imagery from:
 
 Once downloaded, store the image files in the appropriate directory for loading into the code.
 
-Running the Code
-Download Landsat Imagery: Modify the landsat_url variable in the code to point to the actual download location or download the files manually from one of the sources mentioned above.
-
+## Running the Code
+1. **Download Landsat Imagery:** Modify the `landsat_url` variable in the code to point to the actual download location or download the files manually from one of the sources mentioned above.
 Example:
-
-python
-Copy code
+```
 landsat_url = "https://example.com/path/to/landsat_image.tif"
 save_path = "landsat_image.tif"
 download_landsat_image(landsat_url, save_path)
-Loading and Preprocessing: The script resamples the image to a common resolution and applies a mask to isolate urban areas.
+```
+2. **Loading and Preprocessing:** The script resamples the image to a common resolution and applies a mask to isolate urban areas.
 
 U-Net Model: The model is defined using TensorFlow and can be trained on the preprocessed satellite data to detect UHIs. Ensure that you have enough labeled data to train the model.
 
