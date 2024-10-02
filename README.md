@@ -8,10 +8,10 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 - Loads and resamples satellite imagery to a common resolution.
 - Applies masks to isolate urban areas for UHI detection.
 - Normalizes bands for calculating NDVI and other environmental indicators.
-3. *U-Net CNN for UHI Detection: Implements a U-Net model to detect UHI areas using satellite data.
-4. Post-processing:
+3. **U-Net CNN for UHI Detection**: Implements a U-Net model to detect UHI areas using satellite data.
+4. **Post-processing**:
 - Exports results as GeoTIFF files for use in GIS software.
-5. Integration with QGIS: The results can be visualized in QGIS to aid in urban planning and climate analysis.
+5. **Integration with QGIS**: The results can be visualized in QGIS to aid in urban planning and climate analysis.
 
 # Requirements
 **Python Libraries:**
@@ -26,19 +26,16 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 1. Install `Python` (version >= 3.8 recommended).
 
 2. Install the required packages by running the following command:
-``` Copy code
+```
 pip install numpy rasterio gdal requests tensorflow scikit-learn
 ```
 3. Install the Google Earth Engine API:
-```Copy code
+```
 pip install earthengine-api
 ```
 ## GDAL Installation:
 GDAL is required for reading/writing geospatial data. Install GDAL using:
-
-bash
-Copy code
-conda install -c conda-forge gdal
+```conda install -c conda-forge gdal```
 Or via apt for Linux:
 
 bash
