@@ -105,7 +105,7 @@ train_model(model, train_data, train_labels, val_data, val_labels)
 export_to_geotiff(prediction, "uhi_prediction.tif", new_profile)
 ```
 
-Troubleshooting
+## Troubleshooting
 GDAL Issues: If you face issues with GDAL (e.g., not installed or not found), ensure it's properly installed via Conda or your system's package manager.
 Module Not Found: Ensure all dependencies (GDAL, Rasterio, TensorFlow) are installed in the correct Python environment.
 Future Enhancements
@@ -113,6 +113,6 @@ Integrate additional satellite data sources like Sentinel-2.
 Refine the model for better UHI detection accuracy.
 Add more case studies in diverse urban environments.
 ## Written by:
-[Akintola Mercy Ọ̀nàọpẹ́mipọ̀](https://x.com/mercixs_gis) is a Geospatial Developer with an advance special interest in geospatial community development.
+[Akintola Mercy Ọ̀nàọpẹ́mipọ̀](https://x.com/mercixs_gis) is a Geospatial Developer with an advanced special interest in geospatial community development currently working on my HOT Mentorship legacy project.
 ## License
 This project is open-source and distributed under the [MIT License](LICENSE).
