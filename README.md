@@ -106,9 +106,9 @@ export_to_geotiff(prediction, "uhi_prediction.tif", new_profile)
 ```
 
 ## Troubleshooting
-GDAL Issues: If you face issues with GDAL (e.g., not installed or not found), ensure it's properly installed via Conda or your system's package manager.
-Module Not Found: Ensure all dependencies (GDAL, Rasterio, TensorFlow) are installed in the correct Python environment.
-Future Enhancements
+- **GDAL Issues:** If you face issues with GDAL (e.g., not installed or not found), ensure it's properly installed via Conda or your system's package manager.
+- **Module Not Found:** Ensure all dependencies (GDAL, Rasterio, TensorFlow) are installed in the correct Python environment.
+## Future Enhancements
 Integrate additional satellite data sources like Sentinel-2.
 Refine the model for better UHI detection accuracy.
 Add more case studies in diverse urban environments.
