@@ -49,7 +49,7 @@ You can download Landsat imagery from:
 - Google Earth Engine: https://earthengine.google.com/
 - Amazon Web Services (AWS) Landsat Public Dataset: https://registry.opendata.aws/landsat-8/
   
-*Once downloaded, store the image files in the appropriate directory for loading into the code.*
+### Once downloaded, store the image files in the appropriate directory for loading into the code.
 
 ## Running the Code
 1. **Download Landsat Imagery:** Modify the `landsat_url` variable in the code to point to the actual download location or download the files manually from one of the above sources.
