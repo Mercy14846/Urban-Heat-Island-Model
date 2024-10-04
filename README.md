@@ -1,6 +1,6 @@
 # Urban Heat Island (UHI) Detection Model
 ## Project Overview
-This project involves building a deep-detection model to identify Urban Heat Islands (UHIs) using satellite imagery (e.g., Landsat 8). The model is built using Python, TensorFlow, and several geospatial libraries such as Rasterio and GDAL. The results are exported as GeoTIFF files for further analysis in QGIS or other GIS platforms.
+This project involves building a deep-detection model to identify Urban Heat Islands (UHIs) using satellite imagery (e.g., Landsat 8). The model uses Python, TensorFlow, and several geospatial libraries such as Rasterio and GDAL. The results are exported as GeoTIFF files for further analysis in QGIS or other GIS platforms.
 ## Features
 1. **Download Satellite Images**: Downloads Landsat images using an API (e.g., USGS Earth Explorer or AWS Landsat).
 2. **Preprocessing**:
