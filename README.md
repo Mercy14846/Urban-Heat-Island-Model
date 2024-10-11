@@ -9,7 +9,7 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 - Normalizes bands for calculating NDVI and other environmental indicators.
 3. **U-Net CNN for UHI Detection**: Implements a U-Net model to detect UHI areas using satellite data.
 4. **Post-processing**:
-- Exports results as GeoTIFF files for use in GIS software.
+- Exports results as a GeoTIFF file for use in GIS software.
 5. **Integration with QGIS**: The results can be visualized in QGIS to aid in urban planning and climate analysis.
 ## Requirements
 **Python Libraries:**
