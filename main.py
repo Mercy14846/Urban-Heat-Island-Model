@@ -18,7 +18,7 @@ def download_landsat_image(url, save_path):
 
 # Load satellite image (example using Rasterio)
 def load_satellite_image(file_path):
-    """Loads satellite image using Rasterio."""
+    ""Loads satellite image using Rasterio.""
     dataset = rasterio.open(file_path)
     return dataset.read(1), dataset.profile
 
