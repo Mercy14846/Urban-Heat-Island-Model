@@ -22,25 +22,25 @@ This project involves building a deep-detection model to identify Urban Heat Isl
 ## Installation:
 1. Install `Python` (version >= 3.8 recommended).
 2. Install the required packages by running the following command:
-```
+```py
 pip install numpy, rasterio, gdal, requests, tensorflow, scikit-learn
 ```
 3. Install the `Google Earth Engine API`:
-```
+```bash
 pip install earthengine-api
 ```
 ## GDAL Installation:
 GDAL is required for reading/writing geospatial data. Install `GDAL` using:
-```
+```bash
 conda install -c conda-forge gdal
 ```
 Or via apt for Linux:
-```
+```wls
 sudo apt install gdal-bin
 ```
 **TensorFlow Installation:**
 TensorFlow can be installed with pip:
-```
+```bash
 pip install tensorflow
 ```
 ## Data Download
@@ -54,7 +54,7 @@ You can download Landsat imagery from:
 ## Running the Code
 1. **Download Landsat Imagery:** Modify the `landsat_url` variable in the code to point to the actual download location or download the files manually from one of the above sources.
 Example:
-```
+```py
 landsat_url = "https://example.com/path/to/landsat_image.tif"
 save_path = "landsat_image.tif"
 download_landsat_image(landsat_url, save_path)
@@ -62,7 +62,7 @@ download_landsat_image(landsat_url, save_path)
 2. **Loading and Preprocessing:** The script resamples the image to a common resolution and applies a mask to isolate urban areas.
 3. **U-Net Model:** The model is defined using TensorFlow and can be trained on the preprocessed satellite data to detect UHIs. Please make sure that you have enough labeled data to train the model.
 4. **Exporting to GeoTIFF:** Once the model has made predictions, the output is saved as a GeoTIFF, which can be opened in QGIS or any other GIS platform for visualization.
-  ```
+  ```py
   export_to_geotiff(masked_image, output_path, new_profile)
   ```
 5. **QGIS Integration:**
@@ -70,27 +70,27 @@ download_landsat_image(landsat_url, save_path)
 - Use QGIS tools to analyze the UHI predictions further, visualize results, or combine them with other geospatial layers.
 ## Example Workflow
 1. **Download Landsat Image:**
-```
+```py
 landsat_url = "https://example.com/path/to/landsat_image.tif"
 save_path = "landsat_image.tif"
 download_landsat_image(landsat_url, save_path)
 ```
 2. **Preprocess Image:**
-```
+```py
 image, profile = load_satellite_image(save_path)
 resampled_image, new_profile = resample_image(image, profile, 30)  # Example 30m resolution
 ```
 3. **Calculate NDVI:**
-```
+```py
 ndvi = calculate_ndvi(nir_band, red_band)
 ```
 4. **Build and Train U-Net Model:**
-```
+```py
 model = build_unet_model((128, 128, 3))
 train_model(model, train_data, train_labels, val_data, val_labels)
 ```
 5. **Export to GeoTIFF:**
-```
+```py
 export_to_geotiff(prediction, "uhi_prediction.tif", new_profile)
 ```
 ## Troubleshooting
