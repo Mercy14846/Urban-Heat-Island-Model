@@ -36,7 +36,7 @@ def develop_model(data):
     X_train = scaler.fit_transform(X_train)
     X_test = scaler.transform(X_test)
     
-    model = RandomForestRegressor(n_estimators=100, random_state=42)
+    model = RandomForestRegressor(n_estimators=120, random_state=42)
     model.fit(X_train, y_train)
     
     y_pred = model.predict(X_test)
