@@ -105,7 +105,7 @@ input_shape = (128, 128, 3)  # Example input shape based on the resolution of th
 model = build_unet_model(input_shape)
 
 # You would need to prepare training data (train_data, train_labels) and validation data (val_data, val_labels)
-# train_model(model, train_data, train_labels, val_data, val_labels)
+train_model(model, train_data, train_labels, val_data, val_labels)
 
 # Function to export model prediction to GeoTIFF format
 def export_to_geotiff(prediction, output_path, profile):
