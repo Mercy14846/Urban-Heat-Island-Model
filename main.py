@@ -23,7 +23,7 @@ def load_satellite_image(file_path):
     return dataset.read(1), dataset.profile
 
 # Example URLs and file paths
-# landsat_url = "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B4.TIF"  # Adjust URL as needed
+landsat_url = "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B4.TIF"  # Adjust URL as needed
 save_path = "B4.TIF"
 
 # Downloading and loading the image
