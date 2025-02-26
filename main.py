@@ -125,4 +125,4 @@ def evaluate_model(model, test_data, test_labels):
     return accuracy
 
 # Model evaluation example usage
-# accuracy = evaluate_model(model, test_data, test_labels)
+accuracy = evaluate_model(model, test_data, test_labels)
