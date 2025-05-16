@@ -10,8 +10,8 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from datetime import datetime
-from landsatxplore.api import API
-from landsatxplore.earthexplorer import EarthExplorer
+import json
+from usgs import api
 from config import EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
 
 # Set up logging
@@ -34,36 +34,44 @@ class UHIModel:
         
         if self.ee_username == "your_username" or self.ee_password == "your_password":
             raise ValueError("Please replace the default credentials in config.py with your actual Earth Explorer credentials.")
+        
+        # Initialize USGS API session
+        try:
+            api.login(self.ee_username, self.ee_password)
+            logger.info("Successfully authenticated with USGS Earth Explorer")
+        except Exception as e:
+            logger.error(f"Failed to authenticate with USGS Earth Explorer: {str(e)}")
+            raise
 
     def download_landsat_image(self, scene_id, band_number, save_path):
-        """Downloads Landsat 8 satellite image using Earth Explorer."""
+        """Downloads Landsat 8 satellite image using USGS Earth Explorer."""
         try:
-            if not self.ee_username or not self.ee_password:
-                raise ValueError("Earth Explorer credentials are required")
+            # Get download options
+            download_options = api.download_options(scene_id)
             
-            # Initialize the API
-            api = API(self.ee_username, self.ee_password)
-            ee = EarthExplorer(self.ee_username, self.ee_password)
+            if not download_options:
+                raise ValueError(f"No download options available for scene {scene_id}")
             
-            # Search for the scene
-            scenes = api.search(
-                dataset='landsat_8_c1',
-                scene_id=scene_id,
-                max_results=1
-            )
+            # Find the correct band
+            band_file = None
+            for option in download_options:
+                if f"_B{band_number}." in option['downloadURL']:
+                    band_file = option
+                    break
             
-            if not scenes:
-                raise ValueError(f"Scene {scene_id} not found")
+            if not band_file:
+                raise ValueError(f"Band {band_number} not found for scene {scene_id}")
             
-            # Download the specific band
+            # Download the file
             full_path = os.path.join(self.data_dir, save_path)
-            ee.download(scene_id, band_number, output_dir=self.data_dir)
+            response = requests.get(band_file['downloadURL'], stream=True)
+            response.raise_for_status()
             
-            # Close the connections
-            api.logout()
-            ee.logout()
+            with open(full_path, 'wb') as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
             
-            logger.info(f"Successfully downloaded image to {full_path}")
+            logger.info(f"Successfully downloaded band {band_number} to {full_path}")
             return full_path
             
         except Exception as e:
@@ -213,21 +221,29 @@ class UHIModel:
             logger.error(f"Failed to export prediction: {str(e)}")
             raise
 
+    def __del__(self):
+        """Cleanup when the object is destroyed."""
+        try:
+            api.logout()
+            logger.info("Successfully logged out from USGS Earth Explorer")
+        except:
+            pass
+
 def main():
     """Main execution function."""
     try:
         # Initialize the model with Earth Explorer credentials
         uhi_model = UHIModel()
         
-        # Example Landsat 8 scene ID and bands
-        scene_id = "LC08_L1TP_044034_20210415_20210422_01_T1"  # Example scene ID
+        # Example Landsat 8 scene ID
+        scene_id = "LC08_L1TP_044034_20210415_20210422_01_T1"
         
         # Download and process images
         logger.info("Downloading red band...")
-        red_path = uhi_model.download_landsat_image(scene_id, "B4", 'red_band.tif')  # Band 4 is red
+        red_path = uhi_model.download_landsat_image(scene_id, "4", 'red_band.tif')
         
         logger.info("Downloading NIR band...")
-        nir_path = uhi_model.download_landsat_image(scene_id, "B5", 'nir_band.tif')  # Band 5 is NIR
+        nir_path = uhi_model.download_landsat_image(scene_id, "5", 'nir_band.tif')
         
         # Calculate NDVI
         logger.info("Calculating NDVI...")
