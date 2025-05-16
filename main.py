@@ -18,6 +18,9 @@ from config import EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+# USGS Earth Explorer constants
+LANDSAT_COLLECTION = "LANDSAT_8_C1"
+
 class UHIModel:
     def __init__(self, data_dir="data", ee_username=None, ee_password=None):
         """Initialize the Urban Heat Island Model."""
@@ -37,15 +40,13 @@ class UHIModel:
         
         # Initialize USGS API session
         try:
-            # Set the API endpoint
-            api.set_host("https://m2m.cr.usgs.gov/api/api/json/stable/")
-            
             # Login to USGS
-            login_data = api.login(self.ee_username, self.ee_password)
-            if not login_data.get('data'):
+            api_key = api.login(self.ee_username, self.ee_password)
+            if not api_key:
                 raise ValueError("Failed to authenticate with USGS Earth Explorer")
             
             logger.info("Successfully authenticated with USGS Earth Explorer")
+            
         except Exception as e:
             logger.error(f"Failed to authenticate with USGS Earth Explorer: {str(e)}")
             raise
@@ -53,40 +54,39 @@ class UHIModel:
     def download_landsat_image(self, scene_id, band_number, save_path):
         """Downloads Landsat 8 satellite image using USGS Earth Explorer."""
         try:
-            # Search for the scene
-            scene_search = api.scene_metadata('LANDSAT_8_C1', [scene_id])
-            
-            if not scene_search.get('data'):
+            # Get scene metadata
+            metadata = api.metadata(LANDSAT_COLLECTION, [scene_id])
+            if not metadata or 'data' not in metadata or not metadata['data']:
                 raise ValueError(f"Scene {scene_id} not found")
-            
-            # Request download URL
-            download_request = api.download_request('LANDSAT_8_C1', [scene_id])
-            
-            if not download_request.get('data'):
+
+            # Request download
+            download_info = api.download(LANDSAT_COLLECTION, [scene_id])
+            if not download_info or 'data' not in download_info or not download_info['data']:
                 raise ValueError(f"Unable to get download URL for scene {scene_id}")
-            
-            # Get the download URL for the specific band
+
+            # Find the correct band URL
             download_url = None
-            for item in download_request['data']:
-                if f"_B{band_number}." in item['url']:
-                    download_url = item['url']
-                    break
-            
+            for item in download_info['data']:
+                if isinstance(item, dict) and 'url' in item:
+                    if f"_B{band_number}." in item['url']:
+                        download_url = item['url']
+                        break
+
             if not download_url:
                 raise ValueError(f"Band {band_number} not found for scene {scene_id}")
-            
+
             # Download the file
             full_path = os.path.join(self.data_dir, save_path)
             response = requests.get(download_url, stream=True)
             response.raise_for_status()
-            
+
             with open(full_path, 'wb') as f:
                 for chunk in response.iter_content(chunk_size=8192):
                     f.write(chunk)
-            
+
             logger.info(f"Successfully downloaded band {band_number} to {full_path}")
             return full_path
-            
+
         except Exception as e:
             logger.error(f"Failed to download image: {str(e)}")
             raise
@@ -248,8 +248,8 @@ def main():
         # Initialize the model with Earth Explorer credentials
         uhi_model = UHIModel()
         
-        # Example Landsat 8 scene ID
-        scene_id = "LC08_L1TP_044034_20210415_20210422_01_T1"
+        # Example Landsat 8 scene ID (using a more recent scene)
+        scene_id = "LC08_L1GT_044034_20230415_20230416_02_T2"
         
         # Download and process images
         logger.info("Downloading red band...")
