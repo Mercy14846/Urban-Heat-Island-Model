@@ -13,8 +13,7 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 ## Requirements
 
 - Python 3.8 or higher
-- GDAL library
-- Required Python packages (see requirements.txt)
+- Conda (Miniconda or Anaconda)
 - Earth Explorer account credentials
 
 ## Installation
@@ -25,13 +24,18 @@ git clone <repository-url>
 cd Urban-Heat-Island-Model
 ```
 
-2. Create a virtual environment (recommended):
+2. Create and activate a conda environment:
 ```bash
-python -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
+# Create a new conda environment
+conda create -n uhi python=3.8
+conda activate uhi
+
+# Install GDAL and rasterio using conda-forge
+conda install -c conda-forge gdal
+conda install -c conda-forge rasterio
 ```
 
-3. Install the required packages:
+3. Install the remaining requirements:
 ```bash
 pip install -r requirements.txt
 ```
@@ -51,7 +55,12 @@ export EARTHEXPLORER_PASSWORD=your_password
 
 ## Usage
 
-1. Run the main script:
+1. Make sure your conda environment is activated:
+```bash
+conda activate uhi
+```
+
+2. Run the main script:
 ```bash
 python main.py
 ```
@@ -87,6 +96,17 @@ The code includes comprehensive error handling and logging for:
 - File I/O operations
 - Model training problems
 - Data processing errors
+
+## Troubleshooting
+
+If you encounter installation issues:
+1. Make sure you're using conda to install GDAL and rasterio
+2. Try installing GDAL and rasterio with specific versions:
+```bash
+conda install -c conda-forge gdal=3.6.4
+conda install -c conda-forge rasterio=1.3.9
+```
+3. On Windows, you might need to install Visual C++ Build Tools if not already installed
 
 ## Contributing
 
