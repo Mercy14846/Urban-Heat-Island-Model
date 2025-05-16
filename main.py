@@ -286,63 +286,145 @@ class UHIModel:
             logger.error(f"Failed to calculate NDVI: {str(e)}")
             raise ImageProcessingError(f"Failed to calculate NDVI: {str(e)}")
 
-    def normalize_data(self, data):
-        """Normalizes data for machine learning input."""
+    def normalize_data(self, data: np.ndarray) -> np.ndarray:
+        """Normalizes data for machine learning input.
+        
+        Args:
+            data (np.ndarray): Input data array
+            
+        Returns:
+            np.ndarray: Normalized data in range [0, 1]
+        """
         scaler = MinMaxScaler()
         return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
 
-    def build_unet_model(self, input_shape):
-        """Builds a complete U-Net model for Urban Heat Island detection."""
+    def build_unet_model(self, input_shape: Tuple[int, int, int]) -> tf.keras.Model:
+        """Builds an enhanced U-Net model for Urban Heat Island detection.
+        
+        This implementation includes several modern improvements:
+        - Batch normalization for better training stability
+        - Dropout for regularization
+        - Residual connections for better gradient flow
+        - ELU activation for better gradient propagation
+        - Spatial dropout for feature map regularization
+        
+        Args:
+            input_shape (Tuple[int, int, int]): Input shape (height, width, channels)
+            
+        Returns:
+            tf.keras.Model: Compiled U-Net model
+        """
+        def conv_block(x, filters, kernel_size=3, dropout_rate=0.1):
+            """Helper function for creating a conv block with batch norm and residual connection."""
+            conv = layers.Conv2D(filters, kernel_size, padding='same')(x)
+            conv = layers.BatchNormalization()(conv)
+            conv = layers.Activation('elu')(conv)
+            conv = layers.SpatialDropout2D(dropout_rate)(conv)
+            conv = layers.Conv2D(filters, kernel_size, padding='same')(conv)
+            conv = layers.BatchNormalization()(conv)
+            conv = layers.Activation('elu')(conv)
+            return conv
+
+        # Input
         inputs = layers.Input(shape=input_shape)
 
         # Encoder
-        conv1 = layers.Conv2D(64, 3, activation='relu', padding='same')(inputs)
-        conv1 = layers.Conv2D(64, 3, activation='relu', padding='same')(conv1)
+        conv1 = conv_block(inputs, 64)
         pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1)
 
-        conv2 = layers.Conv2D(128, 3, activation='relu', padding='same')(pool1)
-        conv2 = layers.Conv2D(128, 3, activation='relu', padding='same')(conv2)
+        conv2 = conv_block(pool1, 128)
         pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2)
 
+        conv3 = conv_block(pool2, 256)
+        pool3 = layers.MaxPooling2D(pool_size=(2, 2))(conv3)
+
         # Bridge
-        conv3 = layers.Conv2D(256, 3, activation='relu', padding='same')(pool2)
-        conv3 = layers.Conv2D(256, 3, activation='relu', padding='same')(conv3)
+        conv4 = conv_block(pool3, 512)
 
-        # Decoder
-        up1 = layers.UpSampling2D(size=(2, 2))(conv3)
-        up1 = layers.Conv2D(128, 2, activation='relu', padding='same')(up1)
-        concat1 = layers.concatenate([conv2, up1], axis=3)
-        conv4 = layers.Conv2D(128, 3, activation='relu', padding='same')(concat1)
+        # Decoder with skip connections and residual blocks
+        up5 = layers.UpSampling2D(size=(2, 2))(conv4)
+        up5 = layers.Conv2D(256, 2, padding='same')(up5)
+        merge5 = layers.concatenate([conv3, up5], axis=3)
+        conv5 = conv_block(merge5, 256)
 
-        up2 = layers.UpSampling2D(size=(2, 2))(conv4)
-        up2 = layers.Conv2D(64, 2, activation='relu', padding='same')(up2)
-        concat2 = layers.concatenate([conv1, up2], axis=3)
-        conv5 = layers.Conv2D(64, 3, activation='relu', padding='same')(concat2)
+        up6 = layers.UpSampling2D(size=(2, 2))(conv5)
+        up6 = layers.Conv2D(128, 2, padding='same')(up6)
+        merge6 = layers.concatenate([conv2, up6], axis=3)
+        conv6 = conv_block(merge6, 128)
 
-        outputs = layers.Conv2D(1, 1, activation='sigmoid')(conv5)
+        up7 = layers.UpSampling2D(size=(2, 2))(conv6)
+        up7 = layers.Conv2D(64, 2, padding='same')(up7)
+        merge7 = layers.concatenate([conv1, up7], axis=3)
+        conv7 = conv_block(merge7, 64)
+
+        # Output
+        outputs = layers.Conv2D(1, 1, activation='sigmoid')(conv7)
+
+        # Add residual connection from input to output if same shape
+        if inputs.shape[1:] == outputs.shape[1:]:
+            outputs = layers.Add()([outputs, inputs])
 
         model = models.Model(inputs=[inputs], outputs=[outputs])
         return model
 
-    def train_model(self, train_data, train_labels, val_data=None, val_labels=None, 
-                   epochs=10, batch_size=16):
-        """Trains the U-Net model with error handling."""
+    def train_model(self, train_data: np.ndarray, train_labels: np.ndarray, 
+                   val_data: Optional[np.ndarray] = None, 
+                   val_labels: Optional[np.ndarray] = None,
+                   epochs: int = 10, batch_size: int = 16) -> tf.keras.callbacks.History:
+        """Trains the U-Net model with advanced training features.
+        
+        Args:
+            train_data (np.ndarray): Training data
+            train_labels (np.ndarray): Training labels
+            val_data (Optional[np.ndarray]): Validation data
+            val_labels (Optional[np.ndarray]): Validation labels
+            epochs (int): Number of training epochs
+            batch_size (int): Batch size for training
+            
+        Returns:
+            tf.keras.callbacks.History: Training history
+            
+        Raises:
+            ModelError: If training fails
+        """
         try:
             if self.model is None:
                 input_shape = train_data.shape[1:]
                 self.model = self.build_unet_model(input_shape)
             
+            # Use mixed precision for faster training
+            tf.keras.mixed_precision.set_global_policy('mixed_float16')
+            
             self.model.compile(
-                optimizer='adam',
-                loss='binary_crossentropy',
-                metrics=['accuracy']
+                optimizer=tf.keras.optimizers.Adam(learning_rate=1e-4),
+                loss=tf.keras.losses.BinaryCrossentropy(),
+                metrics=[
+                    'accuracy',
+                    tf.keras.metrics.Precision(),
+                    tf.keras.metrics.Recall(),
+                    tf.keras.metrics.AUC()
+                ]
             )
             
             callbacks = [
-                tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+                tf.keras.callbacks.EarlyStopping(
+                    patience=5,
+                    restore_best_weights=True,
+                    monitor='val_loss' if val_data is not None else 'loss'
+                ),
                 tf.keras.callbacks.ModelCheckpoint(
                     os.path.join(self.data_dir, 'best_model.h5'),
-                    save_best_only=True
+                    save_best_only=True,
+                    monitor='val_loss' if val_data is not None else 'loss'
+                ),
+                tf.keras.callbacks.ReduceLROnPlateau(
+                    factor=0.5,
+                    patience=3,
+                    min_lr=1e-6
+                ),
+                tf.keras.callbacks.TensorBoard(
+                    log_dir=os.path.join(self.data_dir, 'logs'),
+                    histogram_freq=1
                 )
             ]
             
@@ -351,30 +433,67 @@ class UHIModel:
                 validation_data=(val_data, val_labels) if val_data is not None else None,
                 epochs=epochs,
                 batch_size=batch_size,
-                callbacks=callbacks
+                callbacks=callbacks,
+                workers=4,
+                use_multiprocessing=True
             )
             
             return history
+            
         except Exception as e:
             logger.error(f"Failed to train model: {str(e)}")
-            raise
+            raise ModelError(f"Training failed: {str(e)}")
 
-    def predict(self, input_data):
-        """Makes predictions using the trained model."""
+    def predict(self, input_data: np.ndarray) -> np.ndarray:
+        """Makes predictions using the trained model.
+        
+        Args:
+            input_data (np.ndarray): Input data for prediction
+            
+        Returns:
+            np.ndarray: Model predictions
+            
+        Raises:
+            ModelError: If prediction fails or model is not trained
+        """
         if self.model is None:
-            raise ValueError("Model has not been trained yet")
-        return self.model.predict(input_data)
+            raise ModelError("Model has not been trained yet")
+            
+        try:
+            return self.model.predict(input_data)
+        except Exception as e:
+            logger.error(f"Failed to make prediction: {str(e)}")
+            raise ModelError(f"Prediction failed: {str(e)}")
 
-    def export_prediction(self, prediction, output_path, profile):
-        """Exports the prediction result to a GeoTIFF file."""
+    def export_prediction(self, prediction: np.ndarray, output_path: str, 
+                        profile: Dict[str, Any]) -> None:
+        """Exports the prediction result to a GeoTIFF file.
+        
+        Args:
+            prediction (np.ndarray): Model prediction to export
+            output_path (str): Path to save the prediction
+            profile (Dict[str, Any]): Metadata profile for the output file
+            
+        Raises:
+            ImageProcessingError: If export fails
+        """
         try:
             full_path = os.path.join(self.data_dir, output_path)
+            
+            # Update profile for prediction output
+            profile.update({
+                'dtype': 'float32',
+                'count': 1,
+                'nodata': None
+            })
+            
             with rasterio.open(full_path, 'w', **profile) as dst:
-                dst.write(prediction, 1)
+                dst.write(prediction.astype('float32'), 1)
             logger.info(f"Successfully exported prediction to {full_path}")
+            
         except Exception as e:
             logger.error(f"Failed to export prediction: {str(e)}")
-            raise
+            raise ImageProcessingError(f"Failed to export prediction: {str(e)}")
 
     def __del__(self):
         """Cleanup when the object is destroyed."""
