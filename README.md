@@ -65,11 +65,12 @@ pip install landsatxplore==0.9.0
    1. Go to https://ers.cr.usgs.gov/register/
    2. Create a new account
    3. After creating your account, you need to request "Machine-to-Machine" access:
-      - Log in to Earth Explorer
+      - Log in to Earth Explorer (https://earthexplorer.usgs.gov/)
       - Go to your profile
-      - Click on "Request Access"
-      - Select "Machine-to-Machine Interface"
-      - Submit the request and wait for approval (usually within 24 hours)
+      - Click on "Access Request"
+      - Under "Additional Access", select "Machine to Machine API Access"
+      - Fill out the form explaining your intended use
+      - Submit the request and wait for approval (usually within 24-48 hours)
 
    Once you have your account with M2M access, you can set up your credentials in one of two ways:
 
@@ -93,9 +94,14 @@ pip install landsatxplore==0.9.0
    ```
 
    **Important Notes:**
-   - Make sure you've received confirmation of your M2M access before running the script
+   - Make sure you've received the email confirming your M2M API access before running the script
    - Your password should be your Earth Explorer password, not your USGS password
-   - If you get authentication errors, try logging in to https://earthexplorer.usgs.gov/ first to verify your credentials
+   - The first time you run the script, it may take a few minutes to authenticate
+   - If you get authentication errors:
+     1. Try logging in to https://earthexplorer.usgs.gov/ first to verify your credentials
+     2. Make sure you've accepted the USGS data access terms
+     3. Check that your M2M API access has been approved
+     4. Try clearing your browser cookies and cache if you recently changed your password
 
 ## Usage
 
