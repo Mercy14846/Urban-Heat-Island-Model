@@ -231,9 +231,9 @@ class UHIModel:
             )
             
             # Update profile
-            profile.update({
-                'width': new_width,
-                'height': new_height,
+    profile.update({
+        'width': new_width,
+        'height': new_height,
                 'transform': transform
             })
             
@@ -295,8 +295,8 @@ class UHIModel:
         Returns:
             np.ndarray: Normalized data in range [0, 1]
         """
-        scaler = MinMaxScaler()
-        return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
+    scaler = MinMaxScaler()
+    return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
 
     def build_unet_model(self, input_shape: Tuple[int, int, int]) -> tf.keras.Model:
         """Builds an enhanced U-Net model for Urban Heat Island detection.
@@ -326,7 +326,7 @@ class UHIModel:
             return conv
 
         # Input
-        inputs = layers.Input(shape=input_shape)
+    inputs = layers.Input(shape=input_shape)
 
         # Encoder
         conv1 = conv_block(inputs, 64)
@@ -364,8 +364,8 @@ class UHIModel:
         if inputs.shape[1:] == outputs.shape[1:]:
             outputs = layers.Add()([outputs, inputs])
 
-        model = models.Model(inputs=[inputs], outputs=[outputs])
-        return model
+    model = models.Model(inputs=[inputs], outputs=[outputs])
+    return model
 
     def train_model(self, train_data: np.ndarray, train_labels: np.ndarray, 
                    val_data: Optional[np.ndarray] = None, 
