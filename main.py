@@ -13,20 +13,54 @@ from datetime import datetime
 import json
 from usgs import api
 from config import EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
+from typing import Optional, Tuple, Dict, Any
 
-# Set up logging
-logging.basicConfig(level=logging.INFO)
+# Set up logging with more detailed format
+logging.basicConfig(
+    level=logging.INFO,
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    datefmt='%Y-%m-%d %H:%M:%S'
+)
 logger = logging.getLogger(__name__)
+
+# Custom exceptions for better error handling
+class USGSAuthenticationError(Exception):
+    """Raised when authentication with USGS Earth Explorer fails."""
+    pass
+
+class ImageDownloadError(Exception):
+    """Raised when there's an error downloading satellite imagery."""
+    pass
+
+class ImageProcessingError(Exception):
+    """Raised when there's an error processing satellite imagery."""
+    pass
+
+class ModelError(Exception):
+    """Raised when there's an error with the U-Net model."""
+    pass
 
 # USGS Earth Explorer constants
 LANDSAT_COLLECTION = "LANDSAT_8_C1"
 
 class UHIModel:
-    def __init__(self, data_dir="data", ee_username=None, ee_password=None):
-        """Initialize the Urban Heat Island Model."""
+    def __init__(self, data_dir: str = "data", ee_username: Optional[str] = None, 
+                 ee_password: Optional[str] = None):
+        """Initialize the Urban Heat Island Model.
+        
+        Args:
+            data_dir (str): Directory to store downloaded and processed data
+            ee_username (Optional[str]): Earth Explorer username
+            ee_password (Optional[str]): Earth Explorer password
+            
+        Raises:
+            USGSAuthenticationError: If authentication fails
+            ValueError: If credentials are missing or invalid
+        """
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
         self.model = None
+        self._api_key = None
         
         # Earth Explorer credentials
         self.ee_username = ee_username or EARTHEXPLORER_USERNAME
@@ -39,17 +73,29 @@ class UHIModel:
             raise ValueError("Please replace the default credentials in config.py with your actual Earth Explorer credentials.")
         
         # Initialize USGS API session
+        self._initialize_api_session()
+
+    def _initialize_api_session(self) -> None:
+        """Initialize and verify USGS API session.
+        
+        Raises:
+            USGSAuthenticationError: If authentication fails
+        """
         try:
-            # Login to USGS
-            api_key = api.login(self.ee_username, self.ee_password)
-            if not api_key:
-                raise ValueError("Failed to authenticate with USGS Earth Explorer")
+            self._api_key = api.login(self.ee_username, self.ee_password)
+            if not self._api_key:
+                raise USGSAuthenticationError("Failed to authenticate with USGS Earth Explorer")
             
-            logger.info("Successfully authenticated with USGS Earth Explorer")
+            # Verify the API key is valid
+            try:
+                api.metadata(LANDSAT_COLLECTION, ["LC08_L1GT_044034_20230415_20230416_02_T2"])
+                logger.info("Successfully authenticated with USGS Earth Explorer")
+            except Exception:
+                raise USGSAuthenticationError("API key validation failed")
             
         except Exception as e:
             logger.error(f"Failed to authenticate with USGS Earth Explorer: {str(e)}")
-            raise
+            raise USGSAuthenticationError(f"Authentication failed: {str(e)}")
 
     def download_landsat_image(self, scene_id, band_number, save_path):
         """Downloads Landsat 8 satellite image using USGS Earth Explorer."""
