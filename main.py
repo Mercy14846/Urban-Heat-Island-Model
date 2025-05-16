@@ -504,7 +504,15 @@ class UHIModel:
             pass
 
 def main():
-    """Main execution function."""
+    """Main execution function demonstrating the Urban Heat Island detection workflow.
+    
+    This function shows how to:
+    1. Initialize the model with proper credentials
+    2. Download and process Landsat 8 imagery
+    3. Calculate NDVI
+    4. Train the U-Net model
+    5. Make predictions and export results
+    """
     try:
         # Initialize the model with Earth Explorer credentials
         uhi_model = UHIModel()
@@ -512,32 +520,90 @@ def main():
         # Example Landsat 8 scene ID (using a more recent scene)
         scene_id = "LC08_L1GT_044034_20230415_20230416_02_T2"
         
-        # Download and process images
-        logger.info("Downloading red band...")
-        red_path = uhi_model.download_landsat_image(scene_id, "4", 'red_band.tif')
+        # Download required bands with progress tracking
+        logger.info("Downloading required Landsat 8 bands...")
+        bands = {
+            "red": "4",
+            "nir": "5",
+            "swir1": "6",
+            "thermal": "10",
+            "swir2": "7"
+        }
         
-        logger.info("Downloading NIR band...")
-        nir_path = uhi_model.download_landsat_image(scene_id, "5", 'nir_band.tif')
+        band_paths = {}
+        for band_name, band_number in bands.items():
+            logger.info(f"Downloading {band_name} band...")
+            band_paths[band_name] = uhi_model.download_landsat_image(
+                scene_id, 
+                band_number,
+                f'{band_name}_band.tif'
+            )
         
         # Calculate NDVI
         logger.info("Calculating NDVI...")
-        ndvi = uhi_model.calculate_ndvi(nir_path, red_path)
+        ndvi = uhi_model.calculate_ndvi(band_paths["nir"], band_paths["red"])
         
-        # Here you would normally prepare your training data
-        logger.info("Preparing training data...")
-        input_shape = (128, 128, 1)
-        dummy_train_data = np.random.random((100, *input_shape))
-        dummy_train_labels = np.random.randint(0, 2, (100, 128, 128, 1))
+        # Load and preprocess thermal band for training
+        logger.info("Loading thermal band for training...")
+        thermal_data, thermal_profile = uhi_model.load_satellite_image(band_paths["thermal"])
+        thermal_data = uhi_model.normalize_data(thermal_data)
         
-        # Train the model
-        logger.info("Training model...")
-        history = uhi_model.train_model(
-            dummy_train_data,
-            dummy_train_labels,
-            epochs=5
+        # Prepare training data
+        input_size = (128, 128)
+        
+        # Create patches for training
+        def create_patches(data, patch_size):
+            patches = []
+            for i in range(0, data.shape[0] - patch_size[0], patch_size[0] // 2):
+                for j in range(0, data.shape[1] - patch_size[1], patch_size[1] // 2):
+                    patch = data[i:i + patch_size[0], j:j + patch_size[1]]
+                    if patch.shape == patch_size:
+                        patches.append(patch)
+            return np.array(patches)
+        
+        # Create training patches
+        thermal_patches = create_patches(thermal_data, input_size)
+        ndvi_patches = create_patches(ndvi, input_size)
+        
+        # Reshape for training
+        X_train = thermal_patches.reshape(-1, *input_size, 1)
+        y_train = ndvi_patches.reshape(-1, *input_size, 1)
+        
+        # Split into training and validation
+        from sklearn.model_selection import train_test_split
+        X_train, X_val, y_train, y_val = train_test_split(
+            X_train, y_train, test_size=0.2, random_state=42
         )
         
-        logger.info("Training completed successfully")
+        # Train the model with advanced features
+        logger.info("Training model...")
+        history = uhi_model.train_model(
+            X_train, y_train,
+            val_data=X_val,
+            val_labels=y_val,
+            epochs=50,
+            batch_size=32
+        )
+        
+        # Make predictions on the full thermal image
+        logger.info("Making predictions...")
+        # Pad the image to be divisible by the input size
+        pad_h = (input_size[0] - thermal_data.shape[0] % input_size[0]) % input_size[0]
+        pad_w = (input_size[1] - thermal_data.shape[1] % input_size[1]) % input_size[1]
+        thermal_padded = np.pad(thermal_data, ((0, pad_h), (0, pad_w)), mode='reflect')
+        
+        # Make prediction
+        thermal_input = thermal_padded.reshape(1, *thermal_padded.shape, 1)
+        prediction = uhi_model.predict(thermal_input)
+        
+        # Remove padding
+        prediction = prediction[0, :thermal_data.shape[0], :thermal_data.shape[1], 0]
+        
+        # Export results
+        logger.info("Exporting results...")
+        uhi_model.export_prediction(prediction, 'uhi_prediction.tif', thermal_profile)
+        
+        logger.info("Processing completed successfully")
         
     except ValueError as ve:
         logger.error(f"Configuration error: {str(ve)}")
