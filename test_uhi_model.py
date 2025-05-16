@@ -5,6 +5,8 @@ import tempfile
 import shutil
 from unittest.mock import patch, MagicMock
 from main import UHIModel, USGSAuthenticationError, ImageDownloadError, ImageProcessingError
+from data_utils import prepare_training_data, setup_multi_gpu_strategy
+from visualization import UHIVisualizer
 
 class TestUHIModel(unittest.TestCase):
     def setUp(self):
