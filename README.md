@@ -60,7 +60,18 @@ pip install landsatxplore==0.9.0
 
 6. Set up Earth Explorer credentials:
    
-   You have two options for setting up credentials:
+   First, you need to create an Earth Explorer account with the proper access level:
+
+   1. Go to https://ers.cr.usgs.gov/register/
+   2. Create a new account
+   3. After creating your account, you need to request "Machine-to-Machine" access:
+      - Log in to Earth Explorer
+      - Go to your profile
+      - Click on "Request Access"
+      - Select "Machine-to-Machine Interface"
+      - Submit the request and wait for approval (usually within 24 hours)
+
+   Once you have your account with M2M access, you can set up your credentials in one of two ways:
 
    **Option 1: Using config.py (Recommended for development)**
    - Open `config.py`
@@ -81,10 +92,10 @@ pip install landsatxplore==0.9.0
    export EARTHEXPLORER_PASSWORD=your_password
    ```
 
-   To get Earth Explorer credentials:
-   1. Sign up for an account at https://earthexplorer.usgs.gov/
-   2. Wait for the confirmation email and activate your account
-   3. Log in to verify your credentials work
+   **Important Notes:**
+   - Make sure you've received confirmation of your M2M access before running the script
+   - Your password should be your Earth Explorer password, not your USGS password
+   - If you get authentication errors, try logging in to https://earthexplorer.usgs.gov/ first to verify your credentials
 
 ## Usage
 
