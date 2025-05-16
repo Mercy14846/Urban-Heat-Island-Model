@@ -12,7 +12,6 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 
 ## Requirements
 
-- Python 3.8 or higher
 - Conda (Miniconda or Anaconda)
 - Earth Explorer account credentials
 
@@ -26,26 +25,40 @@ cd Urban-Heat-Island-Model
 
 2. Create and activate a conda environment:
 ```bash
+# Remove existing environment if it exists
+conda deactivate
+conda env remove -n uhi
+
 # Create a new conda environment
-conda create -n uhi python=3.8
+conda create -n uhi python=3.12
 conda activate uhi
-
-# Install dependencies using conda-forge
-conda install -c conda-forge gdal
-conda install -c conda-forge rasterio
-conda install -c conda-forge shapely=1.8.5
 ```
 
-3. Install the remaining requirements:
+3. Install geospatial dependencies:
 ```bash
-# Downgrade setuptools to avoid compatibility issues
-pip install setuptools==57.5.0
+# Install GDAL, rasterio, and Shapely from conda-forge
+conda install -c conda-forge gdal rasterio shapely
 
-# Install the remaining requirements
-pip install -r requirements.txt
+# Verify installations
+python -c "import gdal; import rasterio; import shapely; print('Geospatial packages installed successfully!')"
 ```
 
-4. Set up Earth Explorer credentials:
+4. Install machine learning dependencies:
+```bash
+# Install TensorFlow and other ML packages
+conda install -c conda-forge tensorflow scikit-learn numpy
+
+# Verify installations
+python -c "import tensorflow as tf; import numpy as np; import sklearn; print('ML packages installed successfully!')"
+```
+
+5. Install remaining requirements:
+```bash
+pip install requests
+pip install landsatxplore==0.9.0
+```
+
+6. Set up Earth Explorer credentials:
    - Sign up for an account at https://earthexplorer.usgs.gov/
    - Set environment variables:
 ```bash
@@ -106,28 +119,33 @@ The code includes comprehensive error handling and logging for:
 
 If you encounter installation issues:
 
-1. Make sure you're using the correct versions:
+1. Clean conda's cache and update:
 ```bash
-conda install -c conda-forge gdal=3.6.4
-conda install -c conda-forge rasterio=1.3.9
-conda install -c conda-forge shapely=1.8.5
-```
-
-2. If you still have issues with package installations:
-```bash
-# Clean conda cache and update
 conda clean --all
 conda update -n base -c defaults conda
 ```
 
-3. On Windows, you might need to install Visual C++ Build Tools if not already installed:
-   - Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
-   - Select "Desktop development with C++"
-
-4. If you get SSL errors when downloading data:
+2. If you get SSL errors:
 ```bash
-# Install certificates via conda
 conda install -c conda-forge ca-certificates certifi
+```
+
+3. If TensorFlow installation fails:
+```bash
+# Try installing with pip instead
+pip install tensorflow
+```
+
+4. If you get "DLL load failed" errors on Windows:
+   - Install Visual C++ Redistributable: https://aka.ms/vs/17/release/vc_redist.x64.exe
+   - Install Visual C++ Build Tools if needed: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+
+5. If landsatxplore installation fails:
+```bash
+# Try installing dependencies first
+pip install requests
+pip install shapely
+pip install landsatxplore==0.9.0
 ```
 
 ## Contributing
