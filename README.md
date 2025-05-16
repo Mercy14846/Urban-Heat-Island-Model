@@ -4,7 +4,7 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 
 ## Features
 
-- Downloads Landsat 8 satellite imagery
+- Downloads Landsat 8 satellite imagery using Earth Explorer API
 - Processes and normalizes satellite data
 - Calculates NDVI (Normalized Difference Vegetation Index)
 - Implements a U-Net model for UHI detection
@@ -15,6 +15,7 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 - Python 3.8 or higher
 - GDAL library
 - Required Python packages (see requirements.txt)
+- Earth Explorer account credentials
 
 ## Installation
 
@@ -35,6 +36,19 @@ source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 ```
 
+4. Set up Earth Explorer credentials:
+   - Sign up for an account at https://earthexplorer.usgs.gov/
+   - Set environment variables:
+```bash
+# On Windows:
+set EARTHEXPLORER_USERNAME=your_username
+set EARTHEXPLORER_PASSWORD=your_password
+
+# On Linux/Mac:
+export EARTHEXPLORER_USERNAME=your_username
+export EARTHEXPLORER_PASSWORD=your_password
+```
+
 ## Usage
 
 1. Run the main script:
@@ -43,7 +57,7 @@ python main.py
 ```
 
 The script will:
-- Download sample Landsat 8 imagery
+- Download sample Landsat 8 imagery using Earth Explorer API
 - Calculate NDVI
 - Train the U-Net model on the data
 - Save the trained model and predictions
