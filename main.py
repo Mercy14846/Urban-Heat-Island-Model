@@ -298,7 +298,7 @@ class UHIModel:
         scaler = MinMaxScaler()
         return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
 
-        def build_unet_model(self, input_shape: Tuple[int, int, int]) -> tf.keras.Model:
+    def build_unet_model(self, input_shape: Tuple[int, int, int]) -> tf.keras.Model:
         """Builds an enhanced U-Net model for Urban Heat Island detection.
         
         This implementation includes several modern improvements:
