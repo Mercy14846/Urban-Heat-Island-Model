@@ -59,17 +59,32 @@ pip install landsatxplore==0.9.0
 ```
 
 6. Set up Earth Explorer credentials:
-   - Sign up for an account at https://earthexplorer.usgs.gov/
-   - Set environment variables:
-```bash
-# On Windows:
-set EARTHEXPLORER_USERNAME=your_username
-set EARTHEXPLORER_PASSWORD=your_password
+   
+   You have two options for setting up credentials:
 
-# On Linux/Mac:
-export EARTHEXPLORER_USERNAME=your_username
-export EARTHEXPLORER_PASSWORD=your_password
-```
+   **Option 1: Using config.py (Recommended for development)**
+   - Open `config.py`
+   - Replace the default values with your credentials:
+   ```python
+   EARTHEXPLORER_USERNAME = "your_actual_username"
+   EARTHEXPLORER_PASSWORD = "your_actual_password"
+   ```
+
+   **Option 2: Using environment variables (Recommended for production)**
+   ```bash
+   # On Windows:
+   set EARTHEXPLORER_USERNAME=your_username
+   set EARTHEXPLORER_PASSWORD=your_password
+
+   # On Linux/Mac:
+   export EARTHEXPLORER_USERNAME=your_username
+   export EARTHEXPLORER_PASSWORD=your_password
+   ```
+
+   To get Earth Explorer credentials:
+   1. Sign up for an account at https://earthexplorer.usgs.gov/
+   2. Wait for the confirmation email and activate your account
+   3. Log in to verify your credentials work
 
 ## Usage
 

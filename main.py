@@ -12,6 +12,7 @@ from tensorflow.keras import layers, models
 from datetime import datetime
 from landsatxplore.api import API
 from landsatxplore.earthexplorer import EarthExplorer
+from config import EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
@@ -25,11 +26,14 @@ class UHIModel:
         self.model = None
         
         # Earth Explorer credentials
-        self.ee_username = ee_username or os.getenv('EARTHEXPLORER_USERNAME')
-        self.ee_password = ee_password or os.getenv('EARTHEXPLORER_PASSWORD')
+        self.ee_username = ee_username or EARTHEXPLORER_USERNAME
+        self.ee_password = ee_password or EARTHEXPLORER_PASSWORD
         
         if not self.ee_username or not self.ee_password:
-            logger.warning("Earth Explorer credentials not provided. Please set EARTHEXPLORER_USERNAME and EARTHEXPLORER_PASSWORD environment variables.")
+            raise ValueError("Earth Explorer credentials are required. Please set them in config.py or environment variables.")
+        
+        if self.ee_username == "your_username" or self.ee_password == "your_password":
+            raise ValueError("Please replace the default credentials in config.py with your actual Earth Explorer credentials.")
 
     def download_landsat_image(self, scene_id, band_number, save_path):
         """Downloads Landsat 8 satellite image using Earth Explorer."""
@@ -219,19 +223,24 @@ def main():
         scene_id = "LC08_L1TP_044034_20210415_20210422_01_T1"  # Example scene ID
         
         # Download and process images
+        logger.info("Downloading red band...")
         red_path = uhi_model.download_landsat_image(scene_id, "B4", 'red_band.tif')  # Band 4 is red
+        
+        logger.info("Downloading NIR band...")
         nir_path = uhi_model.download_landsat_image(scene_id, "B5", 'nir_band.tif')  # Band 5 is NIR
         
         # Calculate NDVI
+        logger.info("Calculating NDVI...")
         ndvi = uhi_model.calculate_ndvi(nir_path, red_path)
         
         # Here you would normally prepare your training data
-        # For demonstration, we'll create dummy data
+        logger.info("Preparing training data...")
         input_shape = (128, 128, 1)
         dummy_train_data = np.random.random((100, *input_shape))
         dummy_train_labels = np.random.randint(0, 2, (100, 128, 128, 1))
         
         # Train the model
+        logger.info("Training model...")
         history = uhi_model.train_model(
             dummy_train_data,
             dummy_train_labels,
@@ -240,6 +249,9 @@ def main():
         
         logger.info("Training completed successfully")
         
+    except ValueError as ve:
+        logger.error(f"Configuration error: {str(ve)}")
+        raise
     except Exception as e:
         logger.error(f"An error occurred in main execution: {str(e)}")
         raise
