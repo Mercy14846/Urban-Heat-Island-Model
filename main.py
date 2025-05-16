@@ -37,7 +37,14 @@ class UHIModel:
         
         # Initialize USGS API session
         try:
-            api.login(self.ee_username, self.ee_password)
+            # Set the API endpoint
+            api.set_host("https://m2m.cr.usgs.gov/api/api/json/stable/")
+            
+            # Login to USGS
+            login_data = api.login(self.ee_username, self.ee_password)
+            if not login_data.get('data'):
+                raise ValueError("Failed to authenticate with USGS Earth Explorer")
+            
             logger.info("Successfully authenticated with USGS Earth Explorer")
         except Exception as e:
             logger.error(f"Failed to authenticate with USGS Earth Explorer: {str(e)}")
@@ -46,25 +53,31 @@ class UHIModel:
     def download_landsat_image(self, scene_id, band_number, save_path):
         """Downloads Landsat 8 satellite image using USGS Earth Explorer."""
         try:
-            # Get download options
-            download_options = api.download_options(scene_id)
+            # Search for the scene
+            scene_search = api.scene_metadata('LANDSAT_8_C1', [scene_id])
             
-            if not download_options:
-                raise ValueError(f"No download options available for scene {scene_id}")
+            if not scene_search.get('data'):
+                raise ValueError(f"Scene {scene_id} not found")
             
-            # Find the correct band
-            band_file = None
-            for option in download_options:
-                if f"_B{band_number}." in option['downloadURL']:
-                    band_file = option
+            # Request download URL
+            download_request = api.download_request('LANDSAT_8_C1', [scene_id])
+            
+            if not download_request.get('data'):
+                raise ValueError(f"Unable to get download URL for scene {scene_id}")
+            
+            # Get the download URL for the specific band
+            download_url = None
+            for item in download_request['data']:
+                if f"_B{band_number}." in item['url']:
+                    download_url = item['url']
                     break
             
-            if not band_file:
+            if not download_url:
                 raise ValueError(f"Band {band_number} not found for scene {scene_id}")
             
             # Download the file
             full_path = os.path.join(self.data_dir, save_path)
-            response = requests.get(band_file['downloadURL'], stream=True)
+            response = requests.get(download_url, stream=True)
             response.raise_for_status()
             
             with open(full_path, 'wb') as f:
