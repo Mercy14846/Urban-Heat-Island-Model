@@ -30,13 +30,18 @@ cd Urban-Heat-Island-Model
 conda create -n uhi python=3.8
 conda activate uhi
 
-# Install GDAL and rasterio using conda-forge
+# Install dependencies using conda-forge
 conda install -c conda-forge gdal
 conda install -c conda-forge rasterio
+conda install -c conda-forge shapely=1.8.5
 ```
 
 3. Install the remaining requirements:
 ```bash
+# Downgrade setuptools to avoid compatibility issues
+pip install setuptools==57.5.0
+
+# Install the remaining requirements
 pip install -r requirements.txt
 ```
 
@@ -100,13 +105,30 @@ The code includes comprehensive error handling and logging for:
 ## Troubleshooting
 
 If you encounter installation issues:
-1. Make sure you're using conda to install GDAL and rasterio
-2. Try installing GDAL and rasterio with specific versions:
+
+1. Make sure you're using the correct versions:
 ```bash
 conda install -c conda-forge gdal=3.6.4
 conda install -c conda-forge rasterio=1.3.9
+conda install -c conda-forge shapely=1.8.5
 ```
-3. On Windows, you might need to install Visual C++ Build Tools if not already installed
+
+2. If you still have issues with package installations:
+```bash
+# Clean conda cache and update
+conda clean --all
+conda update -n base -c defaults conda
+```
+
+3. On Windows, you might need to install Visual C++ Build Tools if not already installed:
+   - Download from: https://visualstudio.microsoft.com/visual-cpp-build-tools/
+   - Select "Desktop development with C++"
+
+4. If you get SSL errors when downloading data:
+```bash
+# Install certificates via conda
+conda install -c conda-forge ca-certificates certifi
+```
 
 ## Contributing
 
