@@ -97,9 +97,29 @@ class UHIModel:
             logger.error(f"Failed to authenticate with USGS Earth Explorer: {str(e)}")
             raise USGSAuthenticationError(f"Authentication failed: {str(e)}")
 
-    def download_landsat_image(self, scene_id, band_number, save_path):
-        """Downloads Landsat 8 satellite image using USGS Earth Explorer."""
+    def download_landsat_image(self, scene_id: str, band_number: str, 
+                            save_path: str) -> str:
+        """Downloads Landsat 8 satellite image using USGS Earth Explorer.
+        
+        Args:
+            scene_id (str): Landsat scene identifier
+            band_number (str): Band number to download
+            save_path (str): Path to save the downloaded file
+            
+        Returns:
+            str: Path to the downloaded file
+            
+        Raises:
+            ImageDownloadError: If download fails
+            ValueError: If scene or band not found
+        """
         try:
+            # Check if file already exists
+            full_path = os.path.join(self.data_dir, save_path)
+            if os.path.exists(full_path):
+                logger.info(f"Using cached band {band_number} from {full_path}")
+                return full_path
+
             # Get scene metadata
             metadata = api.metadata(LANDSAT_COLLECTION, [scene_id])
             if not metadata or 'data' not in metadata or not metadata['data']:
@@ -121,74 +141,150 @@ class UHIModel:
             if not download_url:
                 raise ValueError(f"Band {band_number} not found for scene {scene_id}")
 
-            # Download the file
-            full_path = os.path.join(self.data_dir, save_path)
+            # Download the file with progress tracking
             response = requests.get(download_url, stream=True)
             response.raise_for_status()
-
+            
+            total_size = int(response.headers.get('content-length', 0))
+            block_size = 8192
+            
             with open(full_path, 'wb') as f:
-                for chunk in response.iter_content(chunk_size=8192):
+                for chunk in response.iter_content(chunk_size=block_size):
                     f.write(chunk)
+                    if total_size > 0:
+                        progress = (os.path.getsize(full_path) / total_size) * 100
+                        logger.info(f"Download progress: {progress:.1f}%")
 
             logger.info(f"Successfully downloaded band {band_number} to {full_path}")
             return full_path
 
+        except requests.exceptions.RequestException as e:
+            raise ImageDownloadError(f"Network error while downloading: {str(e)}")
         except Exception as e:
             logger.error(f"Failed to download image: {str(e)}")
-            raise
+            raise ImageDownloadError(str(e))
 
-    def load_satellite_image(self, file_path):
-        """Loads satellite image using Rasterio with error handling."""
+    def load_satellite_image(self, file_path: str) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Loads satellite image using Rasterio with error handling.
+        
+        Args:
+            file_path (str): Path to the image file
+            
+        Returns:
+            Tuple[np.ndarray, Dict[str, Any]]: Image data and metadata profile
+            
+        Raises:
+            ImageProcessingError: If image loading fails
+        """
         try:
-            dataset = rasterio.open(file_path)
-            return dataset.read(1), dataset.profile
-        except rasterio.errors.RasterioError as e:
-            logger.error(f"Failed to load satellite image: {str(e)}")
-            raise
-
-    def resample_image(self, image, profile, target_resolution):
-        """Resamples the image to a common resolution for analysis."""
-        try:
-            with rasterio.open(image) as src:
-                new_width = int(src.width * src.transform[0] / target_resolution)
-                new_height = int(src.height * src.transform[0] / target_resolution)
+            with rasterio.open(file_path) as dataset:
+                # Read the data and handle nodata values
+                data = dataset.read(1)
+                nodata = dataset.nodata
+                if nodata is not None:
+                    data = np.ma.masked_equal(data, nodata).filled(0)
                 
-                data = src.read(
-                    out_shape=(src.count, new_height, new_width),
-                    resampling=Resampling.bilinear
-                )
-                
-                transform = src.transform * src.transform.scale(
-                    (src.width / new_width),
-                    (src.height / new_height)
-                )
-                
-                profile.update({
-                    'width': new_width,
-                    'height': new_height,
-                    'transform': transform
-                })
+                # Get metadata
+                profile = dataset.profile
                 
                 return data, profile
+                
+        except rasterio.errors.RasterioError as e:
+            logger.error(f"Failed to load satellite image: {str(e)}")
+            raise ImageProcessingError(f"Failed to load image: {str(e)}")
+
+    def resample_image(self, image: np.ndarray, profile: Dict[str, Any], 
+                      target_resolution: float) -> Tuple[np.ndarray, Dict[str, Any]]:
+        """Resamples the image to a common resolution for analysis.
+        
+        Args:
+            image (np.ndarray): Input image data
+            profile (Dict[str, Any]): Image metadata profile
+            target_resolution (float): Target resolution in meters
+            
+        Returns:
+            Tuple[np.ndarray, Dict[str, Any]]: Resampled image and updated profile
+            
+        Raises:
+            ImageProcessingError: If resampling fails
+        """
+        try:
+            # Calculate new dimensions
+            scale_factor = profile['transform'][0] / target_resolution
+            new_width = int(image.shape[1] * scale_factor)
+            new_height = int(image.shape[0] * scale_factor)
+            
+            # Update transform
+            transform = profile['transform'] * profile['transform'].scale(
+                (image.shape[1] / new_width),
+                (image.shape[0] / new_height)
+            )
+            
+            # Resample using scikit-image for better performance
+            from skimage.transform import resize
+            resampled_data = resize(
+                image,
+                (new_height, new_width),
+                order=1,  # bilinear interpolation
+                mode='constant',
+                anti_aliasing=True
+            )
+            
+            # Update profile
+            profile.update({
+                'width': new_width,
+                'height': new_height,
+                'transform': transform
+            })
+            
+            return resampled_data, profile
+            
         except Exception as e:
             logger.error(f"Failed to resample image: {str(e)}")
-            raise
+            raise ImageProcessingError(f"Failed to resample image: {str(e)}")
 
-    def calculate_ndvi(self, nir_path, red_path):
-        """Calculates NDVI from NIR and Red bands with error handling."""
+    def calculate_ndvi(self, nir_path: str, red_path: str) -> np.ndarray:
+        """Calculates NDVI from NIR and Red bands with error handling.
+        
+        Args:
+            nir_path (str): Path to NIR band image
+            red_path (str): Path to Red band image
+            
+        Returns:
+            np.ndarray: Normalized NDVI values
+            
+        Raises:
+            ImageProcessingError: If NDVI calculation fails
+        """
         try:
-            nir_band, _ = self.load_satellite_image(nir_path)
-            red_band, _ = self.load_satellite_image(red_path)
+            # Load bands
+            nir_band, nir_profile = self.load_satellite_image(nir_path)
+            red_band, red_profile = self.load_satellite_image(red_path)
             
-            # Avoid division by zero
-            denominator = (nir_band + red_band)
-            denominator[denominator == 0] = 1e-10
+            # Ensure same dimensions
+            if nir_band.shape != red_band.shape:
+                logger.info("Resampling bands to match dimensions...")
+                target_res = min(nir_profile['transform'][0], red_profile['transform'][0])
+                nir_band, _ = self.resample_image(nir_band, nir_profile, target_res)
+                red_band, _ = self.resample_image(red_band, red_profile, target_res)
             
-            ndvi = (nir_band - red_band) / denominator
+            # Calculate NDVI with proper handling of edge cases
+            sum_bands = nir_band + red_band
+            diff_bands = nir_band - red_band
+            
+            # Handle division by zero and invalid values
+            ndvi = np.zeros_like(sum_bands, dtype=np.float32)
+            valid_mask = sum_bands != 0
+            ndvi[valid_mask] = diff_bands[valid_mask] / sum_bands[valid_mask]
+            
+            # Clip values to valid NDVI range [-1, 1]
+            ndvi = np.clip(ndvi, -1, 1)
+            
             return self.normalize_data(ndvi)
+            
         except Exception as e:
             logger.error(f"Failed to calculate NDVI: {str(e)}")
-            raise
+            raise ImageProcessingError(f"Failed to calculate NDVI: {str(e)}")
 
     def normalize_data(self, data):
         """Normalizes data for machine learning input."""
