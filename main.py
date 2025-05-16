@@ -1,4 +1,6 @@
 # Importing necessary libraries for geospatial processing and machine learning
+import os
+import logging
 import rasterio
 import numpy as np
 import requests
@@ -7,122 +9,215 @@ from rasterio.enums import Resampling
 from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras import layers, models
+from datetime import datetime
 
-# Example: Downloading Landsat 8 imagery using requests
-def download_landsat_image(url, save_path):
-    """Downloads Landsat 8 satellite image."""
-    response = requests.get(url, stream=True)
-    with open(save_path, 'wb') as file:
-        for chunk in response.iter_content(chunk_size=8192):
-            file.write(chunk)
+# Set up logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 
-# Load satellite image (example using Rasterio)
-def load_satellite_image(file_path):
-    """Loads satellite image using Rasterio."""
-    dataset = rasterio.open(file_path)
-    return dataset.read(1), dataset.profile
+class UHIModel:
+    def __init__(self, data_dir="data"):
+        """Initialize the Urban Heat Island Model."""
+        self.data_dir = data_dir
+        os.makedirs(data_dir, exist_ok=True)
+        self.model = None
 
-# Example URLs and file paths
-landsat_url = "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B4.TIF"  # Adjust URL as needed
-save_path = "B4.TIF"
+    def download_landsat_image(self, url, save_path):
+        """Downloads Landsat 8 satellite image with error handling."""
+        try:
+            response = requests.get(url, stream=True)
+            response.raise_for_status()
+            
+            full_path = os.path.join(self.data_dir, save_path)
+            with open(full_path, 'wb') as file:
+                for chunk in response.iter_content(chunk_size=8192):
+                    file.write(chunk)
+            logger.info(f"Successfully downloaded image to {full_path}")
+            return full_path
+        except requests.exceptions.RequestException as e:
+            logger.error(f"Failed to download image: {str(e)}")
+            raise
 
-# Downloading and loading the image
-download_landsat_image(landsat_url, save_path)
-image, profile = load_satellite_image(save_path)
+    def load_satellite_image(self, file_path):
+        """Loads satellite image using Rasterio with error handling."""
+        try:
+            dataset = rasterio.open(file_path)
+            return dataset.read(1), dataset.profile
+        except rasterio.errors.RasterioError as e:
+            logger.error(f"Failed to load satellite image: {str(e)}")
+            raise
 
-# Resample the image to a common resolution (e.g., 30m resolution)
-def resample_image(image, profile, target_resolution):
-    """Resamples the image to a common resolution for analysis."""
-    new_width = int(profile['width'] * profile['transform'][0] / target_resolution)
-    new_height = int(profile['height'] * profile['transform'][0] / target_resolution)
-    data = image.read(
-        out_shape=(image.count, new_height, new_width),
-        resampling=Resampling.bilinear
-    )
-    profile.update({
-        'width': new_width,
-        'height': new_height,
-        'transform': image.transform * image.transform.scale(
-            (image.width / new_width),
-            (image.height / new_height)
+    def resample_image(self, image, profile, target_resolution):
+        """Resamples the image to a common resolution for analysis."""
+        try:
+            with rasterio.open(image) as src:
+                new_width = int(src.width * src.transform[0] / target_resolution)
+                new_height = int(src.height * src.transform[0] / target_resolution)
+                
+                data = src.read(
+                    out_shape=(src.count, new_height, new_width),
+                    resampling=Resampling.bilinear
+                )
+                
+                transform = src.transform * src.transform.scale(
+                    (src.width / new_width),
+                    (src.height / new_height)
+                )
+                
+                profile.update({
+                    'width': new_width,
+                    'height': new_height,
+                    'transform': transform
+                })
+                
+                return data, profile
+        except Exception as e:
+            logger.error(f"Failed to resample image: {str(e)}")
+            raise
+
+    def calculate_ndvi(self, nir_path, red_path):
+        """Calculates NDVI from NIR and Red bands with error handling."""
+        try:
+            nir_band, _ = self.load_satellite_image(nir_path)
+            red_band, _ = self.load_satellite_image(red_path)
+            
+            # Avoid division by zero
+            denominator = (nir_band + red_band)
+            denominator[denominator == 0] = 1e-10
+            
+            ndvi = (nir_band - red_band) / denominator
+            return self.normalize_data(ndvi)
+        except Exception as e:
+            logger.error(f"Failed to calculate NDVI: {str(e)}")
+            raise
+
+    def normalize_data(self, data):
+        """Normalizes data for machine learning input."""
+        scaler = MinMaxScaler()
+        return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
+
+    def build_unet_model(self, input_shape):
+        """Builds a complete U-Net model for Urban Heat Island detection."""
+        inputs = layers.Input(shape=input_shape)
+
+        # Encoder
+        conv1 = layers.Conv2D(64, 3, activation='relu', padding='same')(inputs)
+        conv1 = layers.Conv2D(64, 3, activation='relu', padding='same')(conv1)
+        pool1 = layers.MaxPooling2D(pool_size=(2, 2))(conv1)
+
+        conv2 = layers.Conv2D(128, 3, activation='relu', padding='same')(pool1)
+        conv2 = layers.Conv2D(128, 3, activation='relu', padding='same')(conv2)
+        pool2 = layers.MaxPooling2D(pool_size=(2, 2))(conv2)
+
+        # Bridge
+        conv3 = layers.Conv2D(256, 3, activation='relu', padding='same')(pool2)
+        conv3 = layers.Conv2D(256, 3, activation='relu', padding='same')(conv3)
+
+        # Decoder
+        up1 = layers.UpSampling2D(size=(2, 2))(conv3)
+        up1 = layers.Conv2D(128, 2, activation='relu', padding='same')(up1)
+        concat1 = layers.concatenate([conv2, up1], axis=3)
+        conv4 = layers.Conv2D(128, 3, activation='relu', padding='same')(concat1)
+
+        up2 = layers.UpSampling2D(size=(2, 2))(conv4)
+        up2 = layers.Conv2D(64, 2, activation='relu', padding='same')(up2)
+        concat2 = layers.concatenate([conv1, up2], axis=3)
+        conv5 = layers.Conv2D(64, 3, activation='relu', padding='same')(concat2)
+
+        outputs = layers.Conv2D(1, 1, activation='sigmoid')(conv5)
+
+        model = models.Model(inputs=[inputs], outputs=[outputs])
+        return model
+
+    def train_model(self, train_data, train_labels, val_data=None, val_labels=None, 
+                   epochs=10, batch_size=16):
+        """Trains the U-Net model with error handling."""
+        try:
+            if self.model is None:
+                input_shape = train_data.shape[1:]
+                self.model = self.build_unet_model(input_shape)
+            
+            self.model.compile(
+                optimizer='adam',
+                loss='binary_crossentropy',
+                metrics=['accuracy']
+            )
+            
+            callbacks = [
+                tf.keras.callbacks.EarlyStopping(patience=5, restore_best_weights=True),
+                tf.keras.callbacks.ModelCheckpoint(
+                    os.path.join(self.data_dir, 'best_model.h5'),
+                    save_best_only=True
+                )
+            ]
+            
+            history = self.model.fit(
+                train_data, train_labels,
+                validation_data=(val_data, val_labels) if val_data is not None else None,
+                epochs=epochs,
+                batch_size=batch_size,
+                callbacks=callbacks
+            )
+            
+            return history
+        except Exception as e:
+            logger.error(f"Failed to train model: {str(e)}")
+            raise
+
+    def predict(self, input_data):
+        """Makes predictions using the trained model."""
+        if self.model is None:
+            raise ValueError("Model has not been trained yet")
+        return self.model.predict(input_data)
+
+    def export_prediction(self, prediction, output_path, profile):
+        """Exports the prediction result to a GeoTIFF file."""
+        try:
+            full_path = os.path.join(self.data_dir, output_path)
+            with rasterio.open(full_path, 'w', **profile) as dst:
+                dst.write(prediction, 1)
+            logger.info(f"Successfully exported prediction to {full_path}")
+        except Exception as e:
+            logger.error(f"Failed to export prediction: {str(e)}")
+            raise
+
+def main():
+    """Main execution function."""
+    try:
+        # Initialize the model
+        uhi_model = UHIModel()
+        
+        # Example URLs for Landsat 8 data
+        landsat_urls = {
+            'red': "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B4.TIF",
+            'nir': "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B5.TIF"
+        }
+        
+        # Download and process images
+        red_path = uhi_model.download_landsat_image(landsat_urls['red'], 'red_band.tif')
+        nir_path = uhi_model.download_landsat_image(landsat_urls['nir'], 'nir_band.tif')
+        
+        # Calculate NDVI
+        ndvi = uhi_model.calculate_ndvi(nir_path, red_path)
+        
+        # Here you would normally prepare your training data
+        # For demonstration, we'll create dummy data
+        input_shape = (128, 128, 1)
+        dummy_train_data = np.random.random((100, *input_shape))
+        dummy_train_labels = np.random.randint(0, 2, (100, 128, 128, 1))
+        
+        # Train the model
+        history = uhi_model.train_model(
+            dummy_train_data,
+            dummy_train_labels,
+            epochs=5
         )
-    })
-    return data, profile
+        
+        logger.info("Training completed successfully")
+        
+    except Exception as e:
+        logger.error(f"An error occurred in main execution: {str(e)}")
+        raise
 
-# Example: Masking non-urban areas
-def apply_mask(image, mask):
-    """Applies a mask to the satellite image to isolate urban areas."""
-    return np.where(mask, image, np.nan)
-
-# Resample the image and apply a mask
-target_resolution = 30  # Example resolution in meters
-resampled_image, new_profile = resample_image(image, profile, target_resolution)
-mask = np.ones_like(resampled_image, dtype=bool)  # Example mask, this would need to be generated based on urban area data
-masked_image = apply_mask(resampled_image, mask)
-
-# Normalization of features (e.g., NDVI)
-def normalize_data(data):
-    """Normalizes data for machine learning input."""
-    scaler = MinMaxScaler()
-    return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
-
-# Calculate NDVI from NIR and Red bands
-def calculate_ndvi(nir_band, red_band):
-    """Calculates Normalized Difference Vegetation Index (NDVI)."""
-    ndvi = (nir_band - red_band) / (nir_band + red_band)
-    return normalize_data(ndvi)
-
-# Load NIR and Red bands and calculate NDVI
-nir_band, _ = load_satellite_image("nir_band.tif")
-red_band, _ = load_satellite_image("red_band.tif")
-ndvi = calculate_ndvi(nir_band, red_band)
-
-# Deep Learning Model: U-Net for UHI detection
-def build_unet_model(input_shape):
-    """Builds a U-Net model for Urban Heat Island detection."""
-    inputs = layers.Input(shape=input_shape)
-
-    # Encoder (Downsampling)
-    c1 = layers.Conv2D(64, (3, 3), activation='relu', padding='same')(inputs)
-    c1 = layers.MaxPooling2D((2, 2))(c1)
-    # Additional layers for the encoder would be added here
-
-    # Decoder (Upsampling)
-    c9 = layers.Conv2DTranspose(64, (3, 3), strides=(2, 2), padding='same')(c1)
-    outputs = layers.Conv2D(1, (1, 1), activation='sigmoid')(c9)
-
-    model = models.Model(inputs=[inputs], outputs=[outputs])
-    return model
-
-# Example: Compiling and training the U-Net model
-def train_model(model, train_data, train_labels, val_data, val_labels, epochs=10, batch_size=16):
-    """Compiles and trains the U-Net model."""
-    model.compile(optimizer='adam', loss='binary_crossentropy', metrics=['accuracy'])
-    model.fit(train_data, train_labels, validation_data=(val_data, val_labels), epochs=epochs, batch_size=batch_size)
-
-# Model building example usage
-input_shape = (128, 128, 3)  # Example input shape based on the resolution of the resampled image
-model = build_unet_model(input_shape)
-
-# You would need to prepare training data (train_data, train_labels) and validation data (val_data, val_labels)
-train_model(model, train_data, train_labels, val_data, val_labels)
-
-# Function to export model prediction to GeoTIFF format
-def export_to_geotiff(prediction, output_path, profile):
-    """Exports the prediction result to a GeoTIFF file."""
-    with rasterio.open(output_path, 'w', **profile) as dst:
-        dst.write(prediction, 1)
-
-# Example: Exporting the model’s output
-output_path = "uhi_prediction.tif"
-export_to_geotiff(masked_image, output_path, new_profile)
-
-# Function to evaluate the model's performance
-def evaluate_model(model, test_data, test_labels):
-    """Evaluates the model's performance using test data."""
-    loss, accuracy = model.evaluate(test_data, test_labels)
-    print(f"Model accuracy: {accuracy * 100:.2f}%")
-    return accuracy
-
-# Model evaluation example usage
-accuracy = evaluate_model(model, test_data, test_labels)
+if __name__ == "__main__":
+    main()
