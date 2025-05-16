@@ -10,31 +10,59 @@ from sklearn.preprocessing import MinMaxScaler
 import tensorflow as tf
 from tensorflow.keras import layers, models
 from datetime import datetime
+from landsatxplore.api import API
+from landsatxplore.earthexplorer import EarthExplorer
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 class UHIModel:
-    def __init__(self, data_dir="data"):
+    def __init__(self, data_dir="data", ee_username=None, ee_password=None):
         """Initialize the Urban Heat Island Model."""
         self.data_dir = data_dir
         os.makedirs(data_dir, exist_ok=True)
         self.model = None
+        
+        # Earth Explorer credentials
+        self.ee_username = ee_username or os.getenv('EARTHEXPLORER_USERNAME')
+        self.ee_password = ee_password or os.getenv('EARTHEXPLORER_PASSWORD')
+        
+        if not self.ee_username or not self.ee_password:
+            logger.warning("Earth Explorer credentials not provided. Please set EARTHEXPLORER_USERNAME and EARTHEXPLORER_PASSWORD environment variables.")
 
-    def download_landsat_image(self, url, save_path):
-        """Downloads Landsat 8 satellite image with error handling."""
+    def download_landsat_image(self, scene_id, band_number, save_path):
+        """Downloads Landsat 8 satellite image using Earth Explorer."""
         try:
-            response = requests.get(url, stream=True)
-            response.raise_for_status()
+            if not self.ee_username or not self.ee_password:
+                raise ValueError("Earth Explorer credentials are required")
             
+            # Initialize the API
+            api = API(self.ee_username, self.ee_password)
+            ee = EarthExplorer(self.ee_username, self.ee_password)
+            
+            # Search for the scene
+            scenes = api.search(
+                dataset='landsat_8_c1',
+                scene_id=scene_id,
+                max_results=1
+            )
+            
+            if not scenes:
+                raise ValueError(f"Scene {scene_id} not found")
+            
+            # Download the specific band
             full_path = os.path.join(self.data_dir, save_path)
-            with open(full_path, 'wb') as file:
-                for chunk in response.iter_content(chunk_size=8192):
-                    file.write(chunk)
+            ee.download(scene_id, band_number, output_dir=self.data_dir)
+            
+            # Close the connections
+            api.logout()
+            ee.logout()
+            
             logger.info(f"Successfully downloaded image to {full_path}")
             return full_path
-        except requests.exceptions.RequestException as e:
+            
+        except Exception as e:
             logger.error(f"Failed to download image: {str(e)}")
             raise
 
@@ -184,18 +212,15 @@ class UHIModel:
 def main():
     """Main execution function."""
     try:
-        # Initialize the model
+        # Initialize the model with Earth Explorer credentials
         uhi_model = UHIModel()
         
-        # Example URLs for Landsat 8 data
-        landsat_urls = {
-            'red': "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B4.TIF",
-            'nir': "https://landsat-pds.s3.amazonaws.com/c1/L8/001/002/LC08_L1TP_001002_20210320_20210330_01_T1/LC08_L1TP_001002_20210320_20210330_01_T1_B5.TIF"
-        }
+        # Example Landsat 8 scene ID and bands
+        scene_id = "LC08_L1TP_044034_20210415_20210422_01_T1"  # Example scene ID
         
         # Download and process images
-        red_path = uhi_model.download_landsat_image(landsat_urls['red'], 'red_band.tif')
-        nir_path = uhi_model.download_landsat_image(landsat_urls['nir'], 'nir_band.tif')
+        red_path = uhi_model.download_landsat_image(scene_id, "B4", 'red_band.tif')  # Band 4 is red
+        nir_path = uhi_model.download_landsat_image(scene_id, "B5", 'nir_band.tif')  # Band 5 is NIR
         
         # Calculate NDVI
         ndvi = uhi_model.calculate_ndvi(nir_path, red_path)
