@@ -1,4 +1,4 @@
-# Data Directory
+# Data Directory 
 
 This directory is intended to store data files for the Urban Heat Island Model.
 
