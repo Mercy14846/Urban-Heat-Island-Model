@@ -14,7 +14,7 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 
 The following diagram illustrates the complete workflow of the UHI model:
 
-![Urban Heat Island Model Workflow](uhi_model_workflow.png)
+<img width="1748" alt="UHI workflow" src="https://github.com/user-attachments/assets/87ea4532-bae6-454a-abf8-34ffeda914cb" />
 
 The workflow consists of five main stages:
 1. **Data Acquisition**: Retrieving Landsat 8 satellite imagery via the USGS Earth Explorer API
