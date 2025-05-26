@@ -14,7 +14,7 @@ This project implements a deep learning model to detect and analyze Urban Heat I
 
 The following diagram illustrates the complete workflow of the UHI model:
 
-![Urban Heat Island Model Workflow]<img width="1748" alt="UHI workflow" src="https://github.com/user-attachments/assets/9bf7dd35-8666-47d6-b48d-417236a54e6b" />
+Urban Heat Island Model Workflow <img width="1748" alt="UHI workflow" src="https://github.com/user-attachments/assets/9bf7dd35-8666-47d6-b48d-417236a54e6b" />
 
 
 The workflow consists of five main stages:
