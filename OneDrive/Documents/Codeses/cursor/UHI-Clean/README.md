@@ -196,6 +196,11 @@ pip install shapely
 pip install landsatxplore==0.9.0
 ```
 
+## Results
+UHI Visualisation on QGIS
+![QGIS View](https://github.com/user-attachments/assets/07a0c242-517f-47f6-8c8e-c08a706fb773)
+
+
 ## Contributing
 
 Feel free to submit issues and enhancement requests!
