@@ -1,6 +1,7 @@
 settings.json
 config.py
 py/
+UHI_Agis.py
 # Exclude large data files
 data/lagos/
 data/cairo/
