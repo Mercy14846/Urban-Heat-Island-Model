@@ -1,5 +1,6 @@
 settings.json
 config.py
+py/
 # Exclude large data files
 data/lagos/
 data/cairo/
