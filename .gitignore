@@ -7,7 +7,7 @@ data/lagos/
 data/cairo/
 *.TIF
 *.tif
-uhi_model_workflow.png
+
 # Python
 __pycache__/
 *.py[cod]
