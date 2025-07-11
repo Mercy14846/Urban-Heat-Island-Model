@@ -7,6 +7,12 @@ data/lagos/
 data/cairo/
 *.TIF
 *.tif
+Camden UHI science hub Data.xlsx
+Louisville_Metro_KY_-_Urban_Heat_Island_Neighborhood_Data.csv
+sdei-global-uhi-2013-shp.zip
+sdei-global-uhi-2013-xlsx.zip
+zip_UHII.csv
+sample.py
 
 # Python
 __pycache__/
