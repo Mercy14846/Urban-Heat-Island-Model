@@ -834,11 +834,20 @@ class UHIModel:
             raise ImageProcessingError(f"Failed to prepare training data: {str(e)}")
 
 class USGSEarthExplorer:
-    def __init__(self):
-        """Initialize the USGS Earth Explorer client."""
+    def __init__(self, username: str = None, password: str = None):
+        """Initialize the USGS Earth Explorer client.
+        
+        Args:
+            username (str, optional): USGS Earth Explorer username. Defaults to None (uses config).
+            password (str, optional): USGS Earth Explorer password. Defaults to None (uses config).
+        """
         self.session = requests.Session()
         self.api_token = None
         self.token_expiration = None
+        
+        # Store credentials
+        self.username = username
+        self.password = password
         
         # Configure retry strategy with exponential backoff
         retry_strategy = Retry(
@@ -870,13 +879,17 @@ class USGSEarthExplorer:
                 logger.info(f"Authentication attempt {current_attempt}/{max_auth_attempts}")
                 
                 # Validate credentials
-                if not EARTHEXPLORER_USERNAME or not EARTHEXPLORER_PASSWORD:
+                # Prefer instance variables, fallback to globals
+                user = self.username if self.username else EARTHEXPLORER_USERNAME
+                pwd = self.password if self.password else EARTHEXPLORER_PASSWORD
+                
+                if not user or not pwd:
                     raise USGSAuthenticationError("Earth Explorer credentials are missing")
                 
                 # Prepare login request
                 login_data = {
-                    "username": EARTHEXPLORER_USERNAME.strip(),
-                    "password": EARTHEXPLORER_PASSWORD.strip(),
+                    "username": user.strip(),
+                    "password": pwd.strip(),
                     "catalogId": API_CATALOG_ID,
                     "authType": "EROS"
                 }
@@ -891,7 +904,7 @@ class USGSEarthExplorer:
                 try:
                     # Use the token for authentication
                     token_data = {
-                        "username": EARTHEXPLORER_USERNAME.strip(),
+                        "username": user.strip(),
                         "token": M2M_API_TOKEN.strip(),
                         "catalogId": API_CATALOG_ID,
                         "authType": "EROS"

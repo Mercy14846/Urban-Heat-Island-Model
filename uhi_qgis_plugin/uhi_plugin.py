@@ -122,43 +122,48 @@ class UHIPlugin:
         self.dlg.label_coords.setText(f"Selected: {self.search_bbox[0]:.2f}, {self.search_bbox[1]:.2f}, ...")
         self.log(f"Extent set to: {self.search_bbox}")
 
+    def _get_credentials(self):
+        """Get credentials from UI."""
+        username = self.dlg.lineEdit_username.text()
+        password = self.dlg.lineEdit_password.text()
+        
+        if not username or not password:
+            QMessageBox.warning(self.dlg, "Missing Credentials", "Please enter Earth Explorer credentials.")
+            return None, None
+            
+        return username, password
+
+    def _show_message(self, title, message, level=3):
+        """Show message in QGIS message bar and log.
+        Level: 0:Info, 1:Warning, 2:Critical, 3:Success (Custom mapping or use QgsMessageBar constants)
+        """
+        # Map to QGIS constants if imported, else use simple integers
+        # QgsMessageBar.INFO = 0, WARNING = 1, CRITICAL = 2, SUCCESS = 3
+        self.iface.messageBar().pushMessage(title, message, level=level)
+        self.log(f"[{title}] {message}")
+
     def search_scenes(self):
         """Search for Landsat scenes using M2M API."""
         if not self.search_bbox:
             QMessageBox.warning(self.dlg, "No Extent", "Please select 'Use Map Canvas Extent' first.")
             return
 
-        username = self.dlg.lineEdit_username.text()
-        password = self.dlg.lineEdit_password.text()
-        
-        if not username or not password:
-            QMessageBox.warning(self.dlg, "Missing Credentials", "Please enter Earth Explorer credentials.")
+        username, password = self._get_credentials()
+        if not username:
             return
             
         start_date = self.dlg.dateEdit_start.date().toString("yyyy-MM-dd")
         end_date = self.dlg.dateEdit_end.date().toString("yyyy-MM-dd")
         cloud_max = self.dlg.spinBox_cloud.value()
         
-        self.log(f"Searching scenes {start_date} to {end_date}, Cloud < {cloud_max}%...")
+        self._show_message("Search", f"Searching scenes...", level=1) # Info
         
         try:
-            # Import here to avoid circular dependencies if any, or just ensuring availability
-            from main import USGSEarthExplorer, EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
+            # Import main to access USGSEarthExplorer
+            from main import USGSEarthExplorer
             
-            # Temporarily set config globals if needed, or pass credentials?
-            # USGSEarthExplorer uses global constants from config.py usually.
-            # But the user might want to input custom ones. 
-            # The class USGSEarthExplorer in main.py uses EARTHEXPLORER_USERNAME global.
-            # We might need to monkeypatch or modify main.py to accept args, 
-            # BUT looking at Step 73, USGSEarthExplorer checks globals.
-            # However, for MVP let's assume the user entered user/pass overrides constants.
-            
-            # Monkeypatching for the session (Hack, but effective if class relies on globals)
-            import main
-            main.EARTHEXPLORER_USERNAME = username
-            main.EARTHEXPLORER_PASSWORD = password
-            
-            client = USGSEarthExplorer()
+            # Clean instantiation without monkeypatching
+            client = USGSEarthExplorer(username=username, password=password)
             results = client.search_scenes(
                 dataset="landsat_ot_c2_l1",
                 bbox=self.search_bbox,
@@ -189,17 +194,19 @@ class UHIPlugin:
                 self.dlg.tableWidget_results.setItem(i, 1, QTableWidgetItem(str(date_acq)))
                 self.dlg.tableWidget_results.setItem(i, 2, QTableWidgetItem(str(cloud)))
                 
-            self.log(f"Found {len(scenes)} scenes.")
+            self._show_message("Search Complete", f"Found {len(scenes)} scenes.", level=3) # Success
             
         except Exception as e:
             self.log(f"Search Error: {str(e)}")
             import traceback
             self.log(traceback.format_exc())
+            self._show_message("Search Error", str(e), level=2) # Critical
 
     def download_data(self):
         """Handler for data download."""
-        username = self.dlg.lineEdit_username.text()
-        password = self.dlg.lineEdit_password.text()
+        username, password = self._get_credentials()
+        if not username:
+             return
         
         # Check manual ID entry first
         scene_id = self.dlg.lineEdit_scene.text().strip()
@@ -211,41 +218,30 @@ class UHIPlugin:
                 row_idx = rows[0].row()
                 scene_id = self.dlg.tableWidget_results.item(row_idx, 0).text()
         
-        if not username or not password:
-            QMessageBox.warning(self.dlg, "Missing Credentials", "Please enter Earth Explorer credentials.")
-            return
-            
         if not scene_id:
              QMessageBox.warning(self.dlg, "No Scene", "Please enter a Scene ID or select one from search results.")
              return
 
-        self.log(f"Attempting to download {scene_id} as {username}...")
+        self._show_message("Download", f"Downloading {scene_id}...", level=1)
         
         try:
             # Initialize model with credentials for BAND download
             self.uhi_model = UHIModel(data_dir=os.path.join(self.plugin_dir, 'data'), 
                                       ee_username=username, 
                                       ee_password=password)
-            self.log("Authentication successful!")
             
-            self.log(f"Downloading bands for {scene_id}...")
-            # Download bands 4, 5, 6, 10
-            bands_map = {
-                "4": "_B4.TIF",
-                "5": "_B5.TIF",
-                "6": "_B6.TIF",
-                "10": "_B10.TIF"
-            }
+            bands_map = {"4": "_B4.TIF", "5": "_B5.TIF", "6": "_B6.TIF", "10": "_B10.TIF"}
             
             for b, suffix in bands_map.items():
                 self.log(f"Downloading Band {b}...")
                 self.uhi_model.download_landsat_image(scene_id, b, f"{scene_id}{suffix}")
             
-            self.log("Download complete.")
+            self._show_message("Download Complete", "All bands downloaded.", level=3)
                 
         except Exception as e:
             self.log(f"Error: {str(e)}")
             QMessageBox.critical(self.dlg, "Error", str(e))
+            self._show_message("Download Failed", str(e), level=2)
 
     def run_analysis(self):
         """Handler for analysis."""
