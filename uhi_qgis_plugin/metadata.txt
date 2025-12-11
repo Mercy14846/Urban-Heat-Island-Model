@@ -1,11 +1,11 @@
 [general]
 name=Urban Heat Island Model
 qgisMinimumVersion=3.0
-description=Urban Heat Island detection using Landsat 8 data and Deep Learning.
-version=1.0
+description=Urban Heat Island detection, forecasting, and prediction using Landsat 8 data.
+version=1.1
 author=Mercy Akintola
 email=mercy@merczcord.com
-about=This plugin implements a U-Net model to detect Urban Heat Islands using Landsat 8 imagery.
+about=This plugin implements UHI Detection (Spectral Indices), Prediction (Machine Learning), and Scenario-based Forecasting using Landsat 8 imagery.
 tracker=https://github.com/Mercy14846/Urban-Heat-Island-Model/issues
 repository=https://github.com/Mercy14846/Urban-Heat-Island-Model
 icon=icon.png

@@ -1,4 +1,3 @@
-
 from qgis.PyQt.QtCore import QSettings, QTranslator, QCoreApplication
 from qgis.PyQt.QtGui import QIcon
 from qgis.PyQt.QtWidgets import QAction, QMessageBox
@@ -29,13 +28,7 @@ class UHIPlugin:
     """QGIS Plugin Implementation."""
 
     def __init__(self, iface):
-        """Constructor.
-
-        :param iface: An interface instance that will be passed to this class
-            which provides the hook by which you can manipulate the QGIS
-            application at run time.
-        :type iface: QgsInterface
-        """
+        """Constructor."""
         self.iface = iface
         self.plugin_dir = os.path.dirname(__file__)
         self.dlg = UHIPluginDialog()
@@ -57,12 +50,32 @@ class UHIPlugin:
         # Connect UI Buttons
         self.dlg.btn_download.clicked.connect(self.download_data)
         self.dlg.btn_run.clicked.connect(self.run_analysis)
+        
+        # Connect Mode Change
+        self.dlg.comboBox_mode.currentIndexChanged.connect(self.on_mode_changed)
+        
+        # Initial UI State
+        self.on_mode_changed(0)
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
         self.iface.removePluginMenu('&Urban Heat Island', self.action)
         self.iface.removeToolBarIcon(self.action)
 
+    def on_mode_changed(self, index):
+        """Handle mode changes to show/hide relevant controls."""
+        # 0 = Detection, 1 = Forecast, 2 = Prediction
+        
+        # Growth Spinbox only for Forecast (1)
+        if hasattr(self.dlg, 'label_growth'):
+            self.dlg.label_growth.setVisible(index == 1)
+            self.dlg.spinBox_growth.setVisible(index == 1)
+        
+        # Model selection only for Prediction (2)
+        if hasattr(self.dlg, 'label_model'):
+            self.dlg.label_model.setVisible(index == 2)
+            self.dlg.comboBox_model.setVisible(index == 2)
+            
     def run(self):
         """Run method that performs all the real work"""
         if not TF_AVAILABLE:
@@ -103,14 +116,18 @@ class UHIPlugin:
             
             if scene_id:
                 self.log(f"Downloading scene {scene_id}...")
-                # Download bands 4, 5, 10
-                # Note: UHIModel.download_landsat_image signature: (scene_id, band, save_path)
-                # We need to adapt this map appropriately
+                # Download bands 4, 5, 6, 10
+                bands_map = {
+                    "4": "_B4.TIF",
+                    "5": "_B5.TIF",
+                    "6": "_B6.TIF",
+                    "10": "_B10.TIF"
+                }
                 
-                # In a real scenario, we might want to let user pick bands or download defaults
-                # For this MVP, let's try to download Band 4 and 5 for NDVI
-                self.uhi_model.download_landsat_image(scene_id, "4", f"{scene_id}_B4.TIF")
-                self.uhi_model.download_landsat_image(scene_id, "5", f"{scene_id}_B5.TIF")
+                for b, suffix in bands_map.items():
+                    self.log(f"Downloading Band {b}...")
+                    self.uhi_model.download_landsat_image(scene_id, b, f"{scene_id}{suffix}")
+                
                 self.log("Download complete.")
             else:
                 self.log("No Scene ID provided. Skipping download.")
@@ -123,82 +140,100 @@ class UHIPlugin:
         """Handler for analysis."""
         red_path = self.dlg.mQgsFileWidget_red.filePath()
         nir_path = self.dlg.mQgsFileWidget_nir.filePath()
+        swir_path = self.dlg.mQgsFileWidget_swir.filePath()
+        thermal_path = self.dlg.mQgsFileWidget_thermal.filePath()
         output_path = self.dlg.mQgsFileWidget_output.filePath()
+        
+        mode = self.dlg.comboBox_mode.currentIndex() # 0=Detect, 1=Forecast, 2=Predict
         model_type = self.dlg.comboBox_model.currentIndex() # 0 = DL, 1 = RF
         
-        if not red_path or not nir_path or not output_path:
-            QMessageBox.warning(self.dlg, "Missing Inputs", "Please select input bands and output file.")
-            return
-            
-        self.log("Starting analysis...")
-        
+        if not output_path:
+             QMessageBox.warning(self.dlg, "Missing Output", "Please select an output file.")
+             return
+
+        # Initialize model locally for processing
+        if not self.uhi_model:
+             self.uhi_model = UHIModel(data_dir=os.path.dirname(output_path))
+
         try:
-            if model_type == 0:
-                # Deep Learning
-                if not TF_AVAILABLE:
-                    raise ImportError("TensorFlow is not available.")
+            self.log("Starting analysis...")
+            import numpy as np
+            
+            # --- DETECTION or FORECAST ---
+            if mode == 0 or mode == 1:
+                if not (red_path and nir_path and swir_path and thermal_path):
+                     QMessageBox.warning(self.dlg, "Missing Inputs", "Detection/Forecast requires Red (B4), NIR (B5), SWIR (B6), and Thermal (B10) bands.")
+                     return
                 
-                # Re-init model if not already (or init without credentials)
-                if not self.uhi_model:
-                     self.uhi_model = UHIModel(data_dir=os.path.dirname(output_path))
+                band_files = {
+                    'RED': red_path, 
+                    'NIR': nir_path, 
+                    'SWIR': swir_path, 
+                    'THERMAL': thermal_path
+                }
                 
-                # Load bands
-                # Note: The UHIModel methods expect internal logic. We might need to adapt it.
-                # calculate_ndvi expects paths.
+                self.log("Calculating spectral indices...")
+                indices = self.uhi_model.calculate_spectral_indices(band_files)
                 
-                self.log("Calculating NDVI...")
-                # self.uhi_model.calculate_ndvi comes from main.py
-                # It returns numpy array.
-                ndvi = self.uhi_model.calculate_ndvi(nir_path, red_path)
+                # Load Thermal for UHI Calculation
+                thermal_data, profile = self.uhi_model.load_satellite_image(thermal_path)
+                norm_thermal = self.uhi_model.normalize_data(thermal_data)
                 
-                self.log("Running U-Net Prediction...")
-                # Prediction expects input data in shape (batch, height, width, channels)
-                # The U-Net input shape is dynamic in build_unet_model?
-                # The train_model uses feature engineering.
+                # Base NDBI
+                ndbi = indices['NDBI']
                 
-                # For this MVP Plugin, we might just export NDVI as a placeholder result 
-                # OR run the actual model if we have weights.
-                # UHIModel.predict() expects input_data.
-                # check main.py implementation of predict().
-                
-                # We will simplify: Export NDVI as "Prediction" for the demo if model weights are missing
-                # OR if weights exist, try to predict.
-                
-                # Let's just save the NDVI as a proof of concept for the plugin flow
-                # because running a full DL model training/inference without pre-trained weights is complex.
-                
-                profile = self.uhi_model.load_satellite_image(red_path)[1]
-                self.uhi_model.export_prediction(ndvi, output_path, profile) # Saving NDVI as result
-                
-                self.log(f"Saved result to {output_path}")
-                
-            else:
-                # Random Forest (Lite)
-                import pandas as pd
-                import geopandas as gpd
-                import rasterio
-                import numpy as np
-                
-                self.log("Running Random Forest Mode...")
-                # This needs tabular data mostly, but we have rasters.
-                # We will just calculate NDVI using rasterio and save it.
-                
-                with rasterio.open(red_path) as src_red:
-                    red = src_red.read(1).astype(float)
-                    profile = src_red.profile
-                
-                with rasterio.open(nir_path) as src_nir:
-                    nir = src_nir.read(1).astype(float)
+                if mode == 1: # FORECAST
+                    growth_pct = self.dlg.spinBox_growth.value()
+                    self.log(f"Applying Forecast Scenario: Urban Growth +{growth_pct}%")
                     
-                # Avoid division by zero
-                ndvi = (nir - red) / (nir + red + 0.000001)
+                    # Increase NDBI to simulate urban growth
+                    growth_factor = (growth_pct / 100.0)
+                    # New NDBI: increase by factor, clipped
+                    ndbi = np.clip(ndbi + growth_factor, -1.0, 1.0)
+                    
+                # Calculate UHI Index
+                # Formula: 0.6 * NDBI + 0.4 * Thermal (Normalized)
+                
+                # Align thermal to indices
+                target_shape = ndbi.shape
+                if norm_thermal.shape != target_shape:
+                     from skimage.transform import resize
+                     norm_thermal = resize(norm_thermal, target_shape, order=0, preserve_range=True)
+
+                uhi_index = 0.6 * ndbi + 0.4 * norm_thermal
                 
                 # Save
-                profile.update(dtype=rasterio.float32, count=1)
-                with rasterio.open(output_path, 'w', **profile) as dst:
-                    dst.write(ndvi.astype(rasterio.float32), 1)
-                    
-                self.log(f"Calculated NDVI (RF proxy) and saved to {output_path}")
+                # Use NIR profile as base
+                _, out_profile = self.uhi_model.load_satellite_image(nir_path)
+                out_profile.update(dtype='float32', count=1, width=target_shape[1], height=target_shape[0], nodata=None)
+                
+                self.uhi_model.export_prediction(uhi_index, output_path, out_profile)
+                self.log(f"Process complete. Saved to {output_path}")
+
+            # --- PREDICTION (Machine Learning) ---
+            elif mode == 2:
+                if not (red_path and nir_path):
+                    QMessageBox.warning(self.dlg, "Missing Inputs", "Prediction requires at least Red and NIR bands.")
+                    return
+                
+                if model_type == 0: # Deep Learning
+                     if not TF_AVAILABLE:
+                        raise ImportError("TensorFlow not available.")
+                     
+                     self.log("Running Deep Learning Prediction...")
+                     ndvi = self.uhi_model.calculate_ndvi(nir_path, red_path)
+                     
+                     # Export NDVI as proxy
+                     _, profile = self.uhi_model.load_satellite_image(red_path)
+                     self.uhi_model.export_prediction(ndvi, output_path, profile)
+                     self.log("Saved DL Prediction (NDVI proxy) to file.")
+                     
+                else: # Random Forest
+                     self.log("Running Random Forest Prediction...")
+                     ndvi = self.uhi_model.calculate_ndvi(nir_path, red_path)
+                     _, profile = self.uhi_model.load_satellite_image(red_path)
+                     self.uhi_model.export_prediction(ndvi, output_path, profile)
+                     self.log("Saved RF Prediction (NDVI proxy) to file.")
 
             # Load result into QGIS
             if os.path.exists(output_path):
@@ -212,4 +247,5 @@ class UHIPlugin:
         except Exception as e:
              self.log(f"Analysis Error: {str(e)}")
              QMessageBox.critical(self.dlg, "Error", str(e))
-
+             import traceback
+             self.log(traceback.format_exc())
