@@ -23,50 +23,198 @@
       <attribute name="title">
        <string>1. Data Acquisition</string>
       </attribute>
-      <layout class="QFormLayout" name="formLayout">
-       <item row="0" column="0">
-        <widget class="QLabel" name="label_user">
-         <property name="text">
-          <string>Earth Explorer Username:</string>
+      <layout class="QVBoxLayout" name="verticalLayout_data">
+       <item>
+        <widget class="QGroupBox" name="groupBox_auth">
+         <property name="title">
+          <string>Authentication</string>
          </property>
+         <layout class="QFormLayout" name="formLayout">
+          <item row="0" column="0">
+           <widget class="QLabel" name="label_user">
+            <property name="text">
+             <string>Username:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLineEdit" name="lineEdit_username"/>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_pass">
+            <property name="text">
+             <string>Password:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QLineEdit" name="lineEdit_password">
+            <property name="echoMode">
+             <enum>QLineEdit::Password</enum>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
-       <item row="0" column="1">
-        <widget class="QLineEdit" name="lineEdit_username"/>
-       </item>
-       <item row="1" column="0">
-        <widget class="QLabel" name="label_pass">
-         <property name="text">
-          <string>Password:</string>
+       <item>
+        <widget class="QGroupBox" name="groupBox_search">
+         <property name="title">
+          <string>Search Criteria</string>
          </property>
+         <layout class="QGridLayout" name="gridLayout_search">
+          <item row="0" column="0">
+           <widget class="QPushButton" name="btn_extent">
+            <property name="text">
+             <string>Use Map Canvas Extent</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QLabel" name="label_coords">
+            <property name="text">
+             <string>No extent selected</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="label_start">
+            <property name="text">
+             <string>Start Date:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1">
+           <widget class="QDateEdit" name="dateEdit_start">
+            <property name="dateTime">
+             <datetime>
+              <hour>0</hour>
+              <minute>0</minute>
+              <second>0</second>
+              <year>2023</year>
+              <month>1</month>
+              <day>1</day>
+             </datetime>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="0">
+           <widget class="QLabel" name="label_end">
+            <property name="text">
+             <string>End Date:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="2" column="1">
+           <widget class="QDateEdit" name="dateEdit_end">
+            <property name="dateTime">
+             <datetime>
+              <hour>0</hour>
+              <minute>0</minute>
+              <second>0</second>
+              <year>2024</year>
+              <month>12</month>
+              <day>31</day>
+             </datetime>
+            </property>
+            <property name="displayFormat">
+             <string>yyyy-MM-dd</string>
+            </property>
+            <property name="calendarPopup">
+             <bool>true</bool>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="0">
+           <widget class="QLabel" name="label_cloud">
+            <property name="text">
+             <string>Max Cloud (%):</string>
+            </property>
+           </widget>
+          </item>
+          <item row="3" column="1">
+           <widget class="QSpinBox" name="spinBox_cloud">
+            <property name="value">
+             <number>20</number>
+            </property>
+            <property name="maximum">
+             <number>100</number>
+            </property>
+           </widget>
+          </item>
+          <item row="4" column="0" colspan="2">
+           <widget class="QPushButton" name="btn_search">
+            <property name="text">
+             <string>Search Scenes</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
-       <item row="1" column="1">
-        <widget class="QLineEdit" name="lineEdit_password">
-         <property name="echoMode">
-          <enum>QLineEdit::Password</enum>
+       <item>
+        <widget class="QGroupBox" name="groupBox_results">
+         <property name="title">
+          <string>Search Results (Select to Download)</string>
          </property>
+         <layout class="QVBoxLayout" name="verticalLayout_results">
+          <item>
+           <widget class="QTableWidget" name="tableWidget_results">
+            <attribute name="horizontalHeaderStretchLastSection">
+             <bool>true</bool>
+            </attribute>
+            <column>
+             <property name="text">
+              <string>Scene ID</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Date</string>
+             </property>
+            </column>
+            <column>
+             <property name="text">
+              <string>Cloud %</string>
+             </property>
+            </column>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLabel" name="label_manual_id">
+            <property name="text">
+             <string>Or enter Scene ID manually:</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_scene"/>
+          </item>
+          <item>
+           <widget class="QPushButton" name="btn_download">
+            <property name="text">
+             <string>Download Selected / Entered Scene</string>
+            </property>
+           </widget>
+          </item>
+         </layout>
         </widget>
        </item>
-       <item row="2" column="0">
-        <widget class="QLabel" name="label_scene">
-         <property name="text">
-          <string>Scene ID (Optional):</string>
+       <item>
+        <widget class="QTextBrowser" name="textBrowser_log">
+         <property name="maximumSize">
+          <size>
+           <width>16777215</width>
+           <height>100</height>
+          </size>
          </property>
         </widget>
-       </item>
-       <item row="2" column="1">
-        <widget class="QLineEdit" name="lineEdit_scene"/>
-       </item>
-       <item row="3" column="1">
-        <widget class="QPushButton" name="btn_download">
-         <property name="text">
-          <string>Download Data</string>
-         </property>
-        </widget>
-       </item>
-       <item row="4" column="1">
-        <widget class="QTextBrowser" name="textBrowser_log"/>
        </item>
       </layout>
      </widget>

@@ -51,11 +51,19 @@ class UHIPlugin:
         self.dlg.btn_download.clicked.connect(self.download_data)
         self.dlg.btn_run.clicked.connect(self.run_analysis)
         
+        # New Search Buttons
+        if hasattr(self.dlg, 'btn_extent'):
+            self.dlg.btn_extent.clicked.connect(self.get_extent)
+        if hasattr(self.dlg, 'btn_search'):
+            self.dlg.btn_search.clicked.connect(self.search_scenes)
+        
         # Connect Mode Change
         self.dlg.comboBox_mode.currentIndexChanged.connect(self.on_mode_changed)
         
         # Initial UI State
         self.on_mode_changed(0)
+        
+        self.search_bbox = None
 
     def unload(self):
         """Removes the plugin menu item and icon from QGIS GUI."""
@@ -94,43 +102,146 @@ class UHIPlugin:
     def log(self, message):
         """Log to the text browser in the dialog."""
         self.dlg.textBrowser_log.append(message)
+        
+    def get_extent(self):
+        """Get the current map canvas extent."""
+        from qgis.core import QgsCoordinateReferenceSystem, QgsCoordinateTransform, QgsProject
+        
+        canvas = self.iface.mapCanvas()
+        extent = canvas.extent()
+        crs_src = canvas.mapSettings().destinationCrs()
+        crs_dest = QgsCoordinateReferenceSystem("EPSG:4326")
+        
+        transform = QgsCoordinateTransform(crs_src, crs_dest, QgsProject.instance())
+        extent_wgs84 = transform.transformBoundingBox(extent)
+        
+        # bbox: (min_lon, min_lat, max_lon, max_lat)
+        self.search_bbox = (extent_wgs84.xMinimum(), extent_wgs84.yMinimum(), 
+                            extent_wgs84.xMaximum(), extent_wgs84.yMaximum())
+        
+        self.dlg.label_coords.setText(f"Selected: {self.search_bbox[0]:.2f}, {self.search_bbox[1]:.2f}, ...")
+        self.log(f"Extent set to: {self.search_bbox}")
+
+    def search_scenes(self):
+        """Search for Landsat scenes using M2M API."""
+        if not self.search_bbox:
+            QMessageBox.warning(self.dlg, "No Extent", "Please select 'Use Map Canvas Extent' first.")
+            return
+
+        username = self.dlg.lineEdit_username.text()
+        password = self.dlg.lineEdit_password.text()
+        
+        if not username or not password:
+            QMessageBox.warning(self.dlg, "Missing Credentials", "Please enter Earth Explorer credentials.")
+            return
+            
+        start_date = self.dlg.dateEdit_start.date().toString("yyyy-MM-dd")
+        end_date = self.dlg.dateEdit_end.date().toString("yyyy-MM-dd")
+        cloud_max = self.dlg.spinBox_cloud.value()
+        
+        self.log(f"Searching scenes {start_date} to {end_date}, Cloud < {cloud_max}%...")
+        
+        try:
+            # Import here to avoid circular dependencies if any, or just ensuring availability
+            from main import USGSEarthExplorer, EARTHEXPLORER_USERNAME, EARTHEXPLORER_PASSWORD
+            
+            # Temporarily set config globals if needed, or pass credentials?
+            # USGSEarthExplorer uses global constants from config.py usually.
+            # But the user might want to input custom ones. 
+            # The class USGSEarthExplorer in main.py uses EARTHEXPLORER_USERNAME global.
+            # We might need to monkeypatch or modify main.py to accept args, 
+            # BUT looking at Step 73, USGSEarthExplorer checks globals.
+            # However, for MVP let's assume the user entered user/pass overrides constants.
+            
+            # Monkeypatching for the session (Hack, but effective if class relies on globals)
+            import main
+            main.EARTHEXPLORER_USERNAME = username
+            main.EARTHEXPLORER_PASSWORD = password
+            
+            client = USGSEarthExplorer()
+            results = client.search_scenes(
+                dataset="landsat_ot_c2_l1",
+                bbox=self.search_bbox,
+                start_date=start_date,
+                end_date=end_date,
+                max_cloud_cover=cloud_max,
+                max_results=50
+            )
+            
+            # Populate Table
+            from qgis.PyQt.QtWidgets import QTableWidgetItem
+            
+            scenes = results.get('data', {}).get('results', [])
+            self.dlg.tableWidget_results.setRowCount(len(scenes))
+            
+            for i, scene in enumerate(scenes):
+                scene_id = scene.get('entityId', 'Unknown')
+                cloud = scene.get('cloudCover', 'N/A')
+                date_acq = "Unknown"
+                
+                if scene.get('metadata'):
+                    for meta in scene.get('metadata', []):
+                        if meta.get('fieldName') == 'Date Acquired':
+                            date_acq = meta.get('value', 'Unknown')
+                            break
+                            
+                self.dlg.tableWidget_results.setItem(i, 0, QTableWidgetItem(scene_id))
+                self.dlg.tableWidget_results.setItem(i, 1, QTableWidgetItem(str(date_acq)))
+                self.dlg.tableWidget_results.setItem(i, 2, QTableWidgetItem(str(cloud)))
+                
+            self.log(f"Found {len(scenes)} scenes.")
+            
+        except Exception as e:
+            self.log(f"Search Error: {str(e)}")
+            import traceback
+            self.log(traceback.format_exc())
 
     def download_data(self):
         """Handler for data download."""
         username = self.dlg.lineEdit_username.text()
         password = self.dlg.lineEdit_password.text()
-        scene_id = self.dlg.lineEdit_scene.text()
+        
+        # Check manual ID entry first
+        scene_id = self.dlg.lineEdit_scene.text().strip()
+        
+        # If empty, check selected row
+        if not scene_id and hasattr(self.dlg, 'tableWidget_results'):
+            rows = self.dlg.tableWidget_results.selectionModel().selectedRows()
+            if rows:
+                row_idx = rows[0].row()
+                scene_id = self.dlg.tableWidget_results.item(row_idx, 0).text()
         
         if not username or not password:
             QMessageBox.warning(self.dlg, "Missing Credentials", "Please enter Earth Explorer credentials.")
             return
+            
+        if not scene_id:
+             QMessageBox.warning(self.dlg, "No Scene", "Please enter a Scene ID or select one from search results.")
+             return
 
-        self.log(f"Attempting to authenticate as {username}...")
+        self.log(f"Attempting to download {scene_id} as {username}...")
         
         try:
-            # Initialize model with credentials
+            # Initialize model with credentials for BAND download
             self.uhi_model = UHIModel(data_dir=os.path.join(self.plugin_dir, 'data'), 
                                       ee_username=username, 
                                       ee_password=password)
             self.log("Authentication successful!")
             
-            if scene_id:
-                self.log(f"Downloading scene {scene_id}...")
-                # Download bands 4, 5, 6, 10
-                bands_map = {
-                    "4": "_B4.TIF",
-                    "5": "_B5.TIF",
-                    "6": "_B6.TIF",
-                    "10": "_B10.TIF"
-                }
-                
-                for b, suffix in bands_map.items():
-                    self.log(f"Downloading Band {b}...")
-                    self.uhi_model.download_landsat_image(scene_id, b, f"{scene_id}{suffix}")
-                
-                self.log("Download complete.")
-            else:
-                self.log("No Scene ID provided. Skipping download.")
+            self.log(f"Downloading bands for {scene_id}...")
+            # Download bands 4, 5, 6, 10
+            bands_map = {
+                "4": "_B4.TIF",
+                "5": "_B5.TIF",
+                "6": "_B6.TIF",
+                "10": "_B10.TIF"
+            }
+            
+            for b, suffix in bands_map.items():
+                self.log(f"Downloading Band {b}...")
+                self.uhi_model.download_landsat_image(scene_id, b, f"{scene_id}{suffix}")
+            
+            self.log("Download complete.")
                 
         except Exception as e:
             self.log(f"Error: {str(e)}")
