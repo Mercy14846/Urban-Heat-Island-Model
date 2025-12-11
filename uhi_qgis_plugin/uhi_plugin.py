@@ -16,11 +16,13 @@ try:
 except ImportError:
     TF_AVAILABLE = False
     
-try:
-    from model import develop_model, collect_data, preprocess_data, feature_engineering # Lite mode
-    RF_AVAILABLE = True
-except ImportError:
-    RF_AVAILABLE = False
+# Random Forest (Lite mode) - currently unused/placeholder
+RF_AVAILABLE = False
+# try:
+#     from model import develop_model, collect_data, preprocess_data, feature_engineering 
+#     RF_AVAILABLE = True
+# except ImportError:
+#     RF_AVAILABLE = False
 
 from .uhi_plugin_dialog import UHIPluginDialog
 

@@ -186,7 +186,13 @@ class UHIModel:
             if response.status_code == 200:
                 try:
                     data = response.json()
-                    if "data" in data and "token" in data["data"]:
+                    # The new API returns the token directly in the "data" field string for login-token
+                    if "data" in data and isinstance(data["data"], str):
+                         self._api_key = data["data"]
+                         logger.info("Successfully authenticated using username/password")
+                         print("✓ USGS Authentication successful! API connection established.")
+                         return
+                    elif "data" in data and "token" in data["data"]:
                         self._api_key = data["data"]["token"]
                         logger.info("Successfully authenticated using username/password")
                         print("✓ USGS Authentication successful! API connection established.")
