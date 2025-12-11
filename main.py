@@ -7,8 +7,15 @@ import requests
 from osgeo import gdal
 from rasterio.enums import Resampling
 from sklearn.preprocessing import MinMaxScaler
-import tensorflow as tf
-from tensorflow.keras import layers, models
+try:
+    import tensorflow as tf
+    from tensorflow.keras import layers, models
+    TF_AVAILABLE = True
+except ImportError:
+    TF_AVAILABLE = False
+    tf = None
+    layers = None
+    models = None
 from datetime import datetime, timedelta
 import json
 from typing import Optional, Tuple, Dict, Any
@@ -472,7 +479,7 @@ class UHIModel:
         scaler = MinMaxScaler()
         return scaler.fit_transform(data.reshape(-1, 1)).reshape(data.shape)
 
-    def build_unet_model(self, input_shape: Tuple[int, int, int]) -> tf.keras.Model:
+    def build_unet_model(self, input_shape: Tuple[int, int, int]) -> Any:
         """Builds an enhanced U-Net model for Urban Heat Island detection.
         
         This implementation includes several modern improvements:
@@ -565,7 +572,7 @@ class UHIModel:
     def train_model(self, train_data: np.ndarray, train_labels: np.ndarray, 
                    val_data: Optional[np.ndarray] = None, 
                    val_labels: Optional[np.ndarray] = None,
-                   epochs: int = 10, batch_size: int = 16) -> tf.keras.callbacks.History:
+                   epochs: int = 10, batch_size: int = 16) -> Any:
         """Trains the U-Net model with advanced training features.
         
         Args:
