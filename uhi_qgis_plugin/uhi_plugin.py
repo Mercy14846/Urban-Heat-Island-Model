@@ -67,7 +67,12 @@ class UHIPlugin:
         """Run method that performs all the real work"""
         if not TF_AVAILABLE:
             self.dlg.comboBox_model.setItemText(0, "Deep Learning (U-Net) - MISSING TENSORFLOW")
-            self.dlg.comboBox_model.setItemEnabled(0, False)
+            # Disable the item using the model
+            model = self.dlg.comboBox_model.model()
+            if hasattr(model, 'item'):
+                item = model.item(0)
+                if item:
+                    item.setEnabled(False)
             self.dlg.comboBox_model.setCurrentIndex(1)
         
         self.dlg.show()
