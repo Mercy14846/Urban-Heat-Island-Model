@@ -1,0 +1,132 @@
+﻿ObjectId,Neighborhood,Total_New_Green_Roofs,Total_Grass_Planted__Hectares_,Total_Trees_Planted,Total_Cool_Paving__Hectacres_,Total_New_Cool_Roofs
+1,Hurstbourne Acres,0,7,1481,54,99
+2,Industrial East,0,9,3148,62,588
+3,Industrial West,10,66,3974,177,494
+4,Irish Hill,10,4,1464,30,73
+5,Iroquois,2,4,808,15,10
+6,Iroquois Park,0,6,1016,29,9
+7,Jacobs ,0,10,1787,52,58
+8,Jeffersontown,0,101,15076,581,1498
+9,Kenwood Hill,0,2,305,8,12
+10,Klondike,0,12,1844,44,24
+11,Meadow Vale,0,2,783,16,28
+12,Meadowbrook Farm,0,2,210,8,1
+13,Merriwether,0,2,323,10,18
+14,Middletown,0,34,6176,201,348
+15,Moorland,0,1,138,5,0
+16,Murray Hill,0,1,57,3,0
+17,Newburg,0,46,10070,256,519
+18,Northfield,0,3,492,14,21
+19,Norwood,4,2,360,16,30
+20,Okolona,16,83,12936,404,701
+21,Old Brownsboro Place,0,1,82,4,0
+22,Old Louisville ,33,15,7348,154,517
+23,Park Duvalle,0,12,2700,76,98
+24,Park Hill,20,9,2295,59,331
+25,Parkland,1,12,3397,66,210
+26,Phoenix Hill ,20,3,3101,48,173
+27,Plantation,0,1,145,5,0
+28,Poplar Hills,0,1,57,4,11
+29,Poplar Level,0,15,2762,82,139
+30,Portland,4,38,8677,230,473
+31,Prestonia,0,3,234,21,35
+32,Prospect,0,27,2144,94,44
+33,Riverwood,0,1,161,7,0
+34,Rockcreek Lexington Road,0,12,3593,70,93
+35,Rolling Hills ,0,2,178,8,6
+36,Russell,0,11,5415,103,302
+37,Saint Joseph,0,6,3199,52,83
+38,Saint Matthews,22,30,8454,216,431
+39,Schnitzelburg,1,9,2531,51,55
+40,Shawnee,6,21,5325,113,103
+41,Shelby Park,2,3,1449,22,71
+42,Shively,3,69,10316,292,539
+43,Smoketown Jackson,2,6,2411,51,137
+44,South Louisville,0,5,2398,42,108
+45,South Park View,0,1,55,3,7
+46,Southside,0,12,3823,86,270
+47,Spring Mill,0,7,711,22,11
+48,Spring Valley,0,1,66,3,0
+49,St. Dennis,0,29,2335,92,86
+50,Standiford,0,7,164,66,35
+51,Taylor Berry,0,20,6723,124,246
+52,Ten Broeck,0,2,224,9,1
+53,Thornhill,0,0,0,0,0
+54,Tyler Park,0,2,678,14,20
+55,University,24,14,6895,120,319
+56,Valley Station,0,99,10230,329,328
+57,Watterson Park,4,14,6987,149,605
+58,West Buechel,0,12,2253,78,144
+59,Wilder Park,0,4,702,28,16
+60,Wildwood,0,1,582,12,25
+61,Windy Hills,0,6,466,22,7
+62,Woodland Hills,0,7,1029,27,36
+63,Worthington Hills,0,6,493,18,8
+64,Wyandotte,2,7,1271,37,22
+65,Remainder of the city,156,1458,136053,5506,8096
+66,Airport,105,29,3498,342,542
+67,Algonquin,17,12,4118,87,310
+68,Anchorage,0,24,1488,75,46
+69,Auburndale,0,6,719,23,18
+70,Audubon,0,6,1316,26,12
+71,Audubon Park,0,1,85,4,3
+72,Bancroft,0,1,119,4,0
+73,Barbourmeade,0,4,489,18,7
+74,Bashford Manor,0,7,2156,44,80
+75,Beechmont,0,21,4738,105,143
+76,Belknap,0,5,526,22,23
+77,Bellemeade,0,5,718,25,16
+78,Blue Ridge Manor,0,2,203,9,6
+79,Bon Air,1,17,5349,101,138
+80,Bonnycastle,2,4,1194,22,21
+81,Bowman,0,17,2545,100,100
+82,Briarwood,0,3,514,14,27
+83,Brownsboro Farm,0,3,277,10,1
+84,Brownsboro Zorn,1,11,1533,53,37
+85,Buechel,1,26,4036,129,235
+86,Butchertown,0,13,3606,106,291
+87,California,18,14,5298,121,462
+88,Cambridge,0,0,23,1,0
+89,Camp Taylor,0,4,577,20,29
+90,Central Business District,160,5,7925,139,771
+91,Cherokee Gardens,0,2,145,8,0
+92,Cherokee Seneca,0,8,939,34,16
+93,Cherokee Triangle,6,9,3015,64,75
+94,Chickasaw,0,17,2391,77,64
+95,Clifton,0,6,1811,38,104
+96,Clifton Heights,0,8,1465,48,63
+97,Cloverleaf,0,10,1674,41,40
+98,Coldstream,0,1,53,2,0
+99,Creekside,0,1,34,1,2
+100,Crescent Hil,2,24,4053,122,146
+101,Crossgate,0,1,65,7,15
+102,Deer Park,2,6,1898,29,48
+103,Douglass Hills,7,30,4227,131,103
+104,Edgewood,0,16,2203,81,107
+105,Fairdale,0,57,3555,153,204
+106,Fairgrounds,61,15,6586,154,437
+107,Fern Creek,0,51,4831,182,142
+108,Fincastle,0,3,184,8,3
+109,Forest Hills,0,4,2541,39,101
+110,Germantown,3,8,2202,42,70
+111,Glenview,0,4,550,26,3
+112,Glenview Hills,0,1,130,6,0
+113,Glenview Manor,0,3,645,14,18
+114,Goose Creek,0,1,105,5,0
+115,Graymoor-Devondale,0,14,2067,58,70
+116,Green Spring,0,2,200,9,0
+117,Hawthorne,0,9,956,45,33
+118,Hayfield Dundee,0,8,1436,45,35
+119,Hazelwood,0,10,1857,42,59
+120,Heritage Creek,0,3,316,11,1
+121,Hickory Hill,0,0,9,0,0
+122,Highland Park,1,6,1073,47,87
+123,Higlands ,1,3,1031,16,22
+124,Highlands Douglas,0,6,2208,38,47
+125,Highview,0,87,6702,285,307
+126,Hikes Point,0,14,3545,78,97
+127,Hills And Dales ,0,1,60,3,0
+128,Hollow Creek,0,7,502,19,9
+129,Hollyvilla,0,3,144,10,9
+130,Houston Acres,0,1,37,1,1
+131,Hurstbourne,0,18,3832,93,66

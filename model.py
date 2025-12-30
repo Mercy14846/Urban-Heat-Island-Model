@@ -11,8 +11,9 @@ import geopandas as gpd
 import matplotlib.pyplot as plt
 
 # Data Collection
-def collect_data(file_path):
-    data = pd.read_csv(file_path)
+file_path = 'zip_UHII.csv'
+def collect_data(zip_UHII):
+    data = pd.read_csv(zip_UHII)
     return data
 
 # Data Preprocessing
