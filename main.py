@@ -19,7 +19,10 @@ except ImportError:
 from datetime import datetime, timedelta
 import json
 from typing import Optional, Tuple, Dict, Any
-from config import (
+try:
+    from .config import (
+except (ImportError, ValueError):
+    from config import (
     EARTHEXPLORER_USERNAME,
     EARTHEXPLORER_PASSWORD,
     M2M_API_URL,
