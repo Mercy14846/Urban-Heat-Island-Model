@@ -7,11 +7,8 @@ import os.path
 import sys
 import logging
 
-# Add parent directory to path to import main.py
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-
 try:
-    from main import UHIModel
+    from .main import UHIModel
     TF_AVAILABLE = True
 except ImportError:
     TF_AVAILABLE = False
@@ -162,7 +159,7 @@ class UHIPlugin:
         
         try:
             # Import main to access USGSEarthExplorer
-            from main import USGSEarthExplorer
+            from .main import USGSEarthExplorer
             
             # Clean instantiation without monkeypatching
             client = USGSEarthExplorer(username=username, password=password)
